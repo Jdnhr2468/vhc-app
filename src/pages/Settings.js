@@ -89,26 +89,7 @@ function Sidebar({ navigate, location, user }) {
           BioSense
         </Typography>
       </Box>
-      {/* ✅ ДОБАВЛЕНО: мобильный заголовок с кнопкой */}
-        <Box sx={{ display: { xs: 'flex', md: 'none' }, justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box>
-            <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>Devices</Typography>
-            <Typography sx={{ color: theme.textSub, fontSize: '0.85rem' }}>
-              {connectedCount > 0 ? `${connectedCount} connected` : 'No devices connected'}
-            </Typography>
-          </Box>
-          {devices.length > 0 && (
-            <Button onClick={connectBluetooth} disabled={connecting}
-              startIcon={connecting ? <CircularProgress size={14} color="inherit" /> : <Plus size={14} />}
-              size="small"
-              sx={{ bgcolor: theme.primary, color: 'white', borderRadius: '12px',
-                textTransform: 'none', fontWeight: 600,
-                '&:hover': { bgcolor: '#1D4ED8' },
-                '&:disabled': { bgcolor: theme.textMuted, color: 'white' } }}>
-              {connecting ? 'Connecting...' : 'Add'}
-            </Button>
-          )}
-        </Box>
+
 
       <List sx={{ px: 2, mt: 1, flexGrow: 1 }}>
         {menuItems.map(item => {
