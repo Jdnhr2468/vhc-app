@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Box, Grid, Paper, Typography, Button,
   List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Avatar, Stack, Tabs, Tab
+  ListItemText, Avatar, Stack,
 } from '@mui/material';
 import {
   Activity, Bell, LayoutGrid, BarChart3, Settings,
