@@ -10,7 +10,7 @@ import {
   Share2, TrendingUp, Heart, Droplets, Wind
 } from 'lucide-react';
 import {
-  LineChart, Line, AreaChart, Area,
+  AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
 } from 'recharts';
