@@ -98,7 +98,12 @@ export default function AIChat({ vitals }) {
   const btnDragging   = useRef(false);
   const btnDragOffset = useRef({ x: 0, y: 0 });
   const btnMoved      = useRef(false);
-  const [btnPos, setBtnPos] = useState({ x: window.innerWidth - 86, y: window.innerHeight - 100 });
+  const [btnPos, setBtnPos] = useState(() => {
+  try {
+    const saved = localStorage.getItem('ai-btn-pos');
+    return saved ? JSON.parse(saved) : { x: window.innerWidth - 86, y: window.innerHeight - 100 };
+  } catch { return { x: window.innerWidth - 86, y: window.innerHeight - 100 }; }
+});
 
   const onBtnTouchStart = (e) => {
     const touch = e.touches[0];
@@ -113,8 +118,9 @@ export default function AIChat({ vitals }) {
       btnMoved.current = true;
       const touch = e.touches[0];
       const newX = Math.max(0, Math.min(window.innerWidth  - 58, touch.clientX - btnDragOffset.current.x));
-      const newY = Math.max(0, Math.min(window.innerHeight - 58, touch.clientY - btnDragOffset.current.y));
-      setBtnPos({ x: newX, y: newY });
+const newY = Math.max(0, Math.min(window.innerHeight - 58, touch.clientY - btnDragOffset.current.y));
+setBtnPos({ x: newX, y: newY });
+localStorage.setItem('ai-btn-pos', JSON.stringify({ x: newX, y: newY }));
       e.preventDefault();
     };
     const onBtnTouchEnd = () => { btnDragging.current = false; };
