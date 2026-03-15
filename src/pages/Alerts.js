@@ -219,7 +219,7 @@ export default function Alerts() {
       <MobileHeader title="Alerts" alertCount={unreadCount} />
 
       {/* ✅ ИЗМЕНЕНО: добавлен pb для мобильной навигации */}
-      <Box sx={{ flexGrow: 1, ml: { md: '250px' }, p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
+      <Box sx={{ flexGrow: 1, ml: { md: '250px' }, p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
 
         {/* ✅ ИЗМЕНЕНО: десктопный топбар скрыт на мобильном */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>

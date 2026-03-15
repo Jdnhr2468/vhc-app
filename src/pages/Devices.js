@@ -286,10 +286,10 @@ export default function Devices() {
 
     <MobileHeader title="Devices" />
 
-    <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
+    <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
 
         {/* ✅ ИЗМЕНЕНО: топбар скрыт на мобильном */}
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3, pr: 2 }}>
           <Box>
             <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>
               Devices
@@ -312,24 +312,27 @@ export default function Devices() {
 
         {/* ✅ ДОБАВЛЕНО: мобильный заголовок с кнопкой */}
         <Box sx={{ display: { xs: 'flex', md: 'none' }, justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box>
-            <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>Devices</Typography>
-            <Typography sx={{ color: theme.textSub, fontSize: '0.85rem' }}>
-              {connectedCount > 0 ? `${connectedCount} connected` : 'No devices connected'}
-            </Typography>
-          </Box>
-          {devices.length > 0 && (
-            <Button onClick={connectBluetooth} disabled={connecting}
-              startIcon={connecting ? <CircularProgress size={14} color="inherit" /> : <Plus size={14} />}
-              size="small"
-              sx={{ bgcolor: theme.primary, color: 'white', borderRadius: '12px',
-                textTransform: 'none', fontWeight: 600,
-                '&:hover': { bgcolor: '#1D4ED8' },
-                '&:disabled': { bgcolor: theme.textMuted, color: 'white' } }}>
-              {connecting ? 'Connecting...' : 'Add'}
-            </Button>
-          )}
-        </Box>
+  <Box sx={{ flex: 1, minWidth: 0 }}>
+    <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>Devices</Typography>
+    <Typography sx={{ color: theme.textSub, fontSize: '0.85rem' }}>
+      {connectedCount > 0 ? `${connectedCount} connected` : 'No devices connected'}
+    </Typography>
+  </Box>
+  {devices.length > 0 && (
+    <IconButton
+      onClick={connectBluetooth}
+      disabled={connecting}
+      sx={{
+        bgcolor: theme.primary, color: 'white',
+        borderRadius: '12px', p: 1,
+        flexShrink: 0,
+        '&:hover': { bgcolor: '#1D4ED8' },
+        '&:disabled': { bgcolor: theme.textMuted },
+      }}>
+      {connecting ? <CircularProgress size={18} color="inherit" /> : <Plus size={20} />}
+    </IconButton>
+  )}
+</Box>
 
         {/* Bluetooth статус */}
         {btStatus && (
@@ -499,10 +502,13 @@ function DeviceCard({ device, onDisconnect, onReconnect }) {
               {info.icon}
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: theme.textMain }}>
-                {device.name}
-              </Typography>
-              <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>
+              <Typography sx={{ 
+              fontWeight: 700, fontSize: '0.95rem', color: theme.textMain,
+              wordBreak: 'break-word', lineHeight: 1.3,
+            }}>
+             {device.name}
+            </Typography>
+              <Typography sx={{ fontSize: '0.75rem', color: theme.textSub, wordBreak: 'break-word' }}>
                 {device.type || info.type}
               </Typography>
             </Box>

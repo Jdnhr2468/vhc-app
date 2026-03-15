@@ -381,7 +381,7 @@ export default function Dashboard() {
 
 
       {/* ✅ ИЗМЕНЕНО: добавлен pb: { xs: 10, md: 4 } — отступ снизу для нижней навигации */}
-        <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
+        <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
 
         {/* Топбар — скрываем на мобильном т.к. есть MobileHeader */}
         {/* ✅ ДОБАВЛЕНО: display: { xs: 'none', md: 'flex' } */}
@@ -391,7 +391,7 @@ export default function Dashboard() {
               Health Dashboard
             </Typography>
             <Typography sx={{ color: theme.textSub, mt: 0.3 }}>
-              Welcome back, {user?.displayName || user?.email?.split('@')[0]} 👋
+              Welcome back, {user?.displayName || user?.email?.split('@')[0]} 
             </Typography>
           </Box>
 

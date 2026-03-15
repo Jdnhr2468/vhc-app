@@ -297,7 +297,7 @@ export default function Profile() {
         {/* ✅ MobileHeader здесь */}
         <MobileHeader title="Profile" />
 
-      <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
 
         <Box sx={{ mb: 3 }}>
           <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>

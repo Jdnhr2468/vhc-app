@@ -256,7 +256,7 @@ export default function Reports() {
       {/* ✅ MobileHeader здесь */}
         <MobileHeader title="Reports" />
 
-      <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
 
         {/* Топбар */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
