@@ -9,7 +9,7 @@ import {
   LayoutGrid, BarChart3, Settings, LogOut,
   ChevronRight, Smartphone, Flame, Zap, PersonStanding, X
 } from 'lucide-react';
-import { useNavigate, useLocation, data } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../services/firebase';
 import { addAlert, subscribeAlerts, subscribeDevices, markAlertRead } from '../services/firestoreService';
 import {
