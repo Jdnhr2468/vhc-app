@@ -5,16 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../../services/firebase';
 
 const theme = {
-  white:   '#FFFFFF',
-  primary: '#2563EB',
-  border:  '#E2E8F0',
-  textMain:'#1E293B',
+  white:    '#FFFFFF',
+  primary:  '#2563EB',
+  border:   '#E2E8F0',
+  textMain: '#1E293B',
   textMuted:'#94A3B8',
-  danger:  '#EF4444',
-  textSub: '#64748B',
+  danger:   '#EF4444',
+  textSub:  '#64748B',
 };
 
-export default function MobileHeader({ title, alertCount = 0 }) {
+export default function MobileHeader({ title, alertCount = 0, onAlertClick }) {
   const navigate = useNavigate();
   const user     = auth.currentUser;
 
@@ -45,7 +45,8 @@ export default function MobileHeader({ title, alertCount = 0 }) {
 
       {/* Правая часть */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <IconButton onClick={() => navigate('/alerts')}
+        <IconButton
+          onClick={() => onAlertClick ? onAlertClick() : navigate('/alerts')}
           sx={{ p: 1, position: 'relative' }}>
           <Bell size={20} color={alertCount > 0 ? theme.danger : theme.textMuted} />
           {alertCount > 0 && (
