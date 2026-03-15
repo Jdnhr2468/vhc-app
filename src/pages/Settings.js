@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-Box, Grid, Typography, Paper, Button, Avatar,
+Box, Typography, Paper, Button, Avatar,
 List, ListItem, ListItemButton, ListItemIcon,
 ListItemText, Switch, Slider, CircularProgress, Divider
 } from '@mui/material';
 import {
 Activity, Bell, LayoutGrid, BarChart3, Settings,
-LogOut, ChevronRight, Smartphone, Globe, Ruler,
-Info, Users, Heart, Droplets, Wind, Zap,
-PersonStanding, Flame, Eye, Check
+LogOut, ChevronRight, Smartphone, Heart, Droplets, Wind, Zap,
+PersonStanding, Flame, Check
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../services/firebase';
