@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
-import { LayoutGrid, Smartphone, Bell, BarChart3, Settings } from 'lucide-react';
+import { LayoutGrid, Smartphone, BarChart3, Settings, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../../services/firebase';
 import { subscribeAlerts } from '../../services/firestoreService';
@@ -18,7 +18,7 @@ const theme = {
 const menuItems = [
   { label: 'Dashboard', icon: <LayoutGrid size={22} />, path: '/dashboard' },
   { label: 'Devices',   icon: <Smartphone size={22} />, path: '/devices'   },
-  { label: 'Alerts',    icon: <Bell size={22} />,        path: '/alerts'    },
+  { label: 'Profile',    icon: <User size={24} />,        path: '/profile'    },
   { label: 'Reports',   icon: <BarChart3 size={22} />,   path: '/reports'   },
   { label: 'Settings',  icon: <Settings size={22} />,    path: '/settings'  },
 ];
