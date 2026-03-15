@@ -19,7 +19,8 @@ import {
   EmailAuthProvider
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'fairbase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../services/firebase';
 import { getUserProfile, updateUserProfile } from '../services/firestoreService';
 import { updateProfile } from 'firebase/auth';
 import BottomNav    from '../components/layout/BottomNav';
@@ -147,10 +148,9 @@ export default function Profile() {
   const location = useLocation();
   const user     = auth.currentUser;
 
-  const storage = getStorage();
-const [avatarUrl,      setAvatarUrl]      = useState(user?.photoURL || null);
-const [avatarUploading, setAvatarUploading] = useState(false);
-const fileInputRef = useRef(null);
+  const [avatarUrl,      setAvatarUrl]      = useState(user?.photoURL || null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [loading,      setLoading]      = useState(true);
   const [editing,      setEditing]      = useState(false);

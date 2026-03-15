@@ -373,13 +373,15 @@ export default function Dashboard() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.bg }}>
       <Sidebar navigate={navigate} location={location} user={user} alertCount={alertCount} />
+      {/* Весь мобильный контент в одной колонке */}
+      <Box sx={{ flexGrow: 1, ml: { md: '250px' }, width: { xs: '100%', md: 'calc(100% - 250px)' }, display: 'flex', flexDirection: 'column' }}>
 
       {/* ✅ ДОБАВЛЕНО: мобильный хедер — виден только на телефоне */}
       <MobileHeader title="Dashboard" alertCount={alertCount} onAlertClick={()=> setAlertsOpen(true)}/>
 
 
       {/* ✅ ИЗМЕНЕНО: добавлен pb: { xs: 10, md: 4 } — отступ снизу для нижней навигации */}
-      <Box sx={{ flexGrow: 1, ml: { md: '250px' }, p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
+        <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
 
         {/* Топбар — скрываем на мобильном т.к. есть MobileHeader */}
         {/* ✅ ДОБАВЛЕНО: display: { xs: 'none', md: 'flex' } */}
@@ -532,7 +534,7 @@ export default function Dashboard() {
 
         </Grid>
       </Box>
-      
+      </Box>
       <AlertsModal
   open={alertsOpen}
   onClose={() => setAlertsOpen(false)}
