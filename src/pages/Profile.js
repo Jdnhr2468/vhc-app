@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Grid, Typography, Paper, Button, Avatar,
   LinearProgress, Chip, TextField, InputAdornment,
@@ -19,6 +19,7 @@ import {
   EmailAuthProvider
 } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'fairbase/storage';
 import { getUserProfile, updateUserProfile } from '../services/firestoreService';
 import { updateProfile } from 'firebase/auth';
 import BottomNav    from '../components/layout/BottomNav';
@@ -146,6 +147,11 @@ export default function Profile() {
   const location = useLocation();
   const user     = auth.currentUser;
 
+  const storage = getStorage();
+const [avatarUrl,      setAvatarUrl]      = useState(user?.photoURL || null);
+const [avatarUploading, setAvatarUploading] = useState(false);
+const fileInputRef = useRef(null);
+
   const [loading,      setLoading]      = useState(true);
   const [editing,      setEditing]      = useState(false);
   const [saving,       setSaving]       = useState(false);
@@ -239,6 +245,23 @@ export default function Profile() {
   const showSnack = (msg, severity = 'success') =>
     setSnackbar({ open: true, msg, severity });
 
+  const handleAvatarChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  setAvatarUploading(true);
+  try {
+    const storageRef = ref(storage, `avatars/${user.uid}`);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+    await updateProfile(user, { photoURL: url });
+    setAvatarUrl(url);
+    showSnack('Avatar updated!', 'success');
+  } catch (err) {
+    showSnack('Failed to upload avatar.', 'error');
+  }
+  setAvatarUploading(false);
+};
+
   const personalDetails = [
     { label: 'Age',        value: profile.age       ? `${profile.age} years` : '—', icon: <CalendarDays size={18} />,      color: theme.primary },
     { label: 'Height',     value: profile.height    ? `${profile.height} cm` : '—', icon: <ArrowUpNarrowWide size={18} />, color: theme.warning },
@@ -284,17 +307,54 @@ export default function Profile() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
               {/* Аватар */}
-              <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', textAlign: 'center', border: `1px solid ${theme.border}` }}>
-                <Avatar sx={{ width: 80, height: 80, margin: '0 auto 16px',
-                  bgcolor: '#DBEAFE', color: theme.primary, fontWeight: 800, fontSize: '1.8rem' }}>
-                  {(profile.displayName || user?.email)?.[0]?.toUpperCase() || 'U'}
-                </Avatar>
-                <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: theme.textMain }}>
-                  {profile.displayName || user?.email?.split('@')[0]}
-                </Typography>
-                <Typography sx={{ color: theme.textSub, fontSize: '0.85rem', mb: 1 }}>
-                  {user?.email}
-                </Typography>
+<Paper elevation={0} sx={{ p: 3, borderRadius: '24px', textAlign: 'center', border: `1px solid ${theme.border}` }}>
+  
+  {/* скрытый input для файла */}
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept="image/*"
+    style={{ display: 'none' }}
+    onChange={handleAvatarChange}
+  />
+
+  {/* Аватар с кнопкой редактирования */}
+  <Box sx={{ position: 'relative', width: 80, height: 80, margin: '0 auto 16px' }}>
+    <Avatar
+      src={avatarUrl || undefined}
+      sx={{
+        width: 80, height: 80,
+        bgcolor: '#DBEAFE', color: theme.primary,
+        fontWeight: 800, fontSize: '1.8rem',
+      }}>
+      {!avatarUrl && ((profile.displayName || user?.email)?.[0]?.toUpperCase() || 'U')}
+    </Avatar>
+
+    {/* Кнопка редактирования поверх аватара */}
+    <Box
+      onClick={() => fileInputRef.current?.click()}
+      sx={{
+        position: 'absolute', bottom: 0, right: 0,
+        width: 26, height: 26, borderRadius: '50%',
+        bgcolor: theme.primary, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', border: '2px solid white',
+        '&:hover': { bgcolor: '#1D4ED8' },
+      }}>
+      {avatarUploading
+        ? <CircularProgress size={12} sx={{ color: 'white' }} />
+        : <Pencil size={12} color="white" />
+      }
+    </Box>
+  </Box>
+
+  <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: theme.textMain }}>
+    {profile.displayName || user?.email?.split('@')[0]}
+  </Typography>
+  <Typography sx={{ color: theme.textSub, fontSize: '0.85rem', mb: 1 }}>
+    {user?.email}
+  </Typography>
+  {/* ... остальное без изменений */}
 
                 {/* Текущая цель под именем */}
                 {currentGoalData && (
