@@ -273,13 +273,20 @@ export default function Devices() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.bg }}>
-      <Sidebar navigate={navigate} location={location} user={user} />
+  <Sidebar navigate={navigate} location={location} user={user} />
 
-      {/* ✅ ДОБАВЛЕНО: мобильный хедер */}
-      <MobileHeader title="Devices" />
+  <Box sx={{
+    flexGrow: 1,
+    ml: { md: '250px' },
+    width: { xs: '100%', md: 'calc(100% - 250px)' },
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+  }}>
 
-      {/* ✅ ИЗМЕНЕНО: pb для мобильной навигации */}
-      <Box sx={{ flexGrow: 1, ml: { md: '250px' }, p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
+    <MobileHeader title="Devices" />
+
+    <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
 
         {/* ✅ ИЗМЕНЕНО: топбар скрыт на мобильном */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -442,7 +449,7 @@ export default function Devices() {
           </>
         )}
       </Box>
-
+      </Box>
       {/* ✅ ДОБАВЛЕНО: нижняя навигация */}
       <BottomNav />
     </Box>

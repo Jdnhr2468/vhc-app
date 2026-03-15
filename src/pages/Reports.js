@@ -244,11 +244,19 @@ export default function Reports() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.bg }}>
       <Sidebar navigate={navigate} location={location} user={user} />
+      <Box sx={{
+          flexGrow: 1,
+          ml: { md: '250px' },
+          width: { xs: '100%', md: 'calc(100% - 250px)' },
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: 0,
+        }}>
 
       {/* ✅ MobileHeader здесь */}
         <MobileHeader title="Reports" />
 
-      <Box ref={reportRef} sx={{ flexGrow: 1, ml: { md: '250px' }, p: { xs: 2, md: 4 }, width: '100%' }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}>
 
         {/* Топбар */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -475,6 +483,7 @@ export default function Reports() {
           </Grid>
 
         </Grid>
+      </Box>
       </Box>
       {/* ✅ ДОБАВЛЕНО: нижняя навигация — видна только на телефоне */}
             <BottomNav />
