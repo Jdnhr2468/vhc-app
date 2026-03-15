@@ -163,7 +163,7 @@ export default function Register() {
 
           <Typography sx={{ fontSize: '1.8rem', fontWeight: 800, color: theme.textMain,
             letterSpacing: '-0.5px', mb: 0.5 }}>
-            Create account 🚀
+            Create account 
           </Typography>
           <Typography sx={{ color: theme.textSub, mb: 3, fontSize: '0.95rem' }}>
             Join BioSense — it's free and takes 30 seconds

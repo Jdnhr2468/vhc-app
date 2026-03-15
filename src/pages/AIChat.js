@@ -26,13 +26,17 @@ export default function AIChat({ vitals }) {
   const [messages,  setMessages]  = useState([
     {
       role: 'assistant',
-      text: `Hi ${user?.displayName?.split(' ')[0] || 'there'}! 👋 I'm your BioSense AI health advisor. Ask me anything about your health data, symptoms, or lifestyle tips!`,
+      text: `Hi ${user?.displayName?.split(' ')[0] || 'there'}!  I'm your BioSense AI health advisor. Ask me anything about your health data, symptoms, or lifestyle tips!`,
     }
   ]);
   const [input,   setInput]   = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [pos,      setPos]      = useState({ x: window.innerWidth - 380, y: window.innerHeight - 560 });
+  const [pos, setPos] = useState({
+    x: window.innerWidth  - 380,
+    y: window.innerHeight - 560,
+  });
+
   const dragging   = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const chatRef        = useRef(null);
@@ -42,6 +46,7 @@ export default function AIChat({ vitals }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // МЫШЬ — drag
   const onMouseDown = (e) => {
     dragging.current   = true;
     dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
@@ -64,6 +69,63 @@ export default function AIChat({ vitals }) {
     };
   }, []);
 
+  // TOUCH — drag для мобильного
+  const onTouchStart = (e) => {
+    const touch = e.touches[0];
+    dragging.current   = true;
+    dragOffset.current = { x: touch.clientX - pos.x, y: touch.clientY - pos.y };
+  };
+
+  useEffect(() => {
+    const onTouchMove = (e) => {
+      if (!dragging.current) return;
+      const touch = e.touches[0];
+      const newX = Math.max(0, Math.min(window.innerWidth  - 320, touch.clientX - dragOffset.current.x));
+      const newY = Math.max(0, Math.min(window.innerHeight - 60,  touch.clientY - dragOffset.current.y));
+      setPos({ x: newX, y: newY });
+      e.preventDefault();
+    };
+    const onTouchEnd = () => { dragging.current = false; };
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend',  onTouchEnd);
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend',  onTouchEnd);
+    };
+  }, []);
+
+  // Кнопка (закрытый чат) — draggable на мобильном
+  const btnDragging   = useRef(false);
+  const btnDragOffset = useRef({ x: 0, y: 0 });
+  const btnMoved      = useRef(false);
+  const [btnPos, setBtnPos] = useState({ x: window.innerWidth - 86, y: window.innerHeight - 100 });
+
+  const onBtnTouchStart = (e) => {
+    const touch = e.touches[0];
+    btnDragging.current   = true;
+    btnMoved.current      = false;
+    btnDragOffset.current = { x: touch.clientX - btnPos.x, y: touch.clientY - btnPos.y };
+  };
+
+  useEffect(() => {
+    const onBtnTouchMove = (e) => {
+      if (!btnDragging.current) return;
+      btnMoved.current = true;
+      const touch = e.touches[0];
+      const newX = Math.max(0, Math.min(window.innerWidth  - 58, touch.clientX - btnDragOffset.current.x));
+      const newY = Math.max(0, Math.min(window.innerHeight - 58, touch.clientY - btnDragOffset.current.y));
+      setBtnPos({ x: newX, y: newY });
+      e.preventDefault();
+    };
+    const onBtnTouchEnd = () => { btnDragging.current = false; };
+    window.addEventListener('touchmove', onBtnTouchMove, { passive: false });
+    window.addEventListener('touchend',  onBtnTouchEnd);
+    return () => {
+      window.removeEventListener('touchmove', onBtnTouchMove);
+      window.removeEventListener('touchend',  onBtnTouchEnd);
+    };
+  }, [btnPos]);
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -85,24 +147,18 @@ Current patient biomarkers:
 
       const apiMessages = messages
         .slice(1)
-        .map(m => ({
-          role:    m.role === 'user' ? 'user' : 'assistant',
-          content: m.text,
-        }));
+        .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
       apiMessages.push({ role: 'user', content: userText });
 
       const response = await fetch('/api/claude/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model:      'claude-sonnet-4-20250514',
           max_tokens: 1000,
           system: `You are BioSense AI, a friendly and knowledgeable personal health advisor integrated into the BioSense health monitoring app.
 
-${vitalsContext}
-
+          ${vitalsContext}
 Your role:
 - Provide helpful, personalized health advice based on the user's biomarker data
 - Be conversational, warm, and encouraging
@@ -119,40 +175,42 @@ User name: ${user?.displayName || 'User'}`,
       const data  = await response.json();
       const reply = data.content?.[0]?.text || 'Sorry, I could not process your request.';
       setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-
-    } catch (err) {
+    }
+     catch (err) {
       console.error('AIChat error:', err);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        text: '⚠️ Connection error. Please try again.',
-      }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Connection error. Please try again.' }]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   if (!open) return (
-    <Box onClick={() => setOpen(true)} sx={{
-      position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
-      width: 58, height: 58, borderRadius: '50%',
-      background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer', boxShadow: '0 8px 32px rgba(37,99,235,0.4)',
-      transition: 'transform 0.2s, box-shadow 0.2s',
-      '&:hover': { transform: 'scale(1.1)', boxShadow: '0 12px 40px rgba(37,99,235,0.5)' },
-      animation: 'float 3s ease-in-out infinite',
-      '@keyframes float': {
-        '0%,100%': { transform: 'translateY(0px)' },
-        '50%':     { transform: 'translateY(-6px)' },
-      },
-    }}>
+    <Box
+      onTouchStart={onBtnTouchStart}
+      onClick={() => { if (!btnMoved.current) setOpen(true); }}
+      sx={{
+        position: 'fixed',
+        bottom: { md: 28 },
+        right:  { md: 28 },
+        left:   { xs: btnPos.x, md: 'auto' },
+        top:    { xs: btnPos.y, md: 'auto' },
+        zIndex: 9999,
+        width: 58, height: 58, borderRadius: '50%',
+        background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', boxShadow: '0 8px 32px rgba(37,99,235,0.4)',
+        transition: 'box-shadow 0.2s',
+        '&:hover': { boxShadow: '0 12px 40px rgba(37,99,235,0.5)' },
+        animation: 'float 3s ease-in-out infinite',
+        '@keyframes float': {
+          '0%,100%': { transform: 'translateY(0px)' },
+          '50%':     { transform: 'translateY(-6px)' },
+        },
+      }}>
       <Sparkles size={26} color="white" />
     </Box>
   );
@@ -160,19 +218,24 @@ User name: ${user?.displayName || 'User'}`,
   return (
     <Box ref={chatRef} sx={{
       position: 'fixed', left: pos.x, top: pos.y, zIndex: 9999,
-      width: 360, borderRadius: '24px', overflow: 'hidden',
+      width: { xs: 320, md: 360 },
+      borderRadius: '24px', overflow: 'hidden',
       boxShadow: '0 20px 60px rgba(0,0,0,0.18)',
       border: `1px solid ${theme.border}`,
       bgcolor: theme.white, userSelect: 'none',
     }}>
 
-      {/* Шапка */}
-      <Box onMouseDown={onMouseDown} sx={{
-        background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
-        p: 2, cursor: 'grab',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        '&:active': { cursor: 'grabbing' },
-      }}>
+      {/* Шапка — drag zone */}
+      <Box
+        onMouseDown={onMouseDown}
+        onTouchStart={onTouchStart}
+        sx={{
+          background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
+          p: 2, cursor: 'grab',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          '&:active': { cursor: 'grabbing' },
+          touchAction: 'none',
+        }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{ bgcolor: 'rgba(255,255,255,0.2)', p: 0.8, borderRadius: '10px', display: 'flex' }}>
             <Sparkles size={18} color="white" />
@@ -183,11 +246,14 @@ User name: ${user?.displayName || 'User'}`,
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4ADE80' }} />
-              <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>Online</Typography>
+              <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.8)' }}>
+                Online · drag to move
+              </Typography>
             </Box>
           </Box>
         </Box>
 
+      
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           <IconButton size="small" onClick={() => setMinimized(!minimized)}
             sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { color: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}>
@@ -203,7 +269,7 @@ User name: ${user?.displayName || 'User'}`,
       {!minimized && (
         <>
           <Box sx={{
-            height: 380, overflowY: 'auto', p: 2,
+            height: { xs: 320, md: 380 }, overflowY: 'auto', p: 2,
             display: 'flex', flexDirection: 'column', gap: 1.5,
             bgcolor: theme.bg,
             '&::-webkit-scrollbar': { width: 4 },
@@ -249,7 +315,7 @@ User name: ${user?.displayName || 'User'}`,
                 )}
               </Box>
             ))}
-
+            
             {loading && (
               <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
                 <Box sx={{

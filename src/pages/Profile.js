@@ -64,19 +64,17 @@ function Sidebar({ navigate, location, user }) {
       borderRight: `1px solid ${theme.border}`,
       position: 'fixed', height: '100vh', zIndex: 100,
     }}>
-      {/* ✅ ДОБАВЛЕНО: мобильный хедер */}
-            <MobileHeader title="Devices" />
+
       
             {/* ✅ ИЗМЕНЕНО: pb для мобильной навигации */}
-            <Box sx={{ flexGrow: 1, ml: { md: '250px' }, p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, width: '100%' }}></Box>
-      <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ bgcolor: theme.primary, p: 1, borderRadius: '12px', display: 'flex' }}>
-          <Activity color="white" size={22} />
-        </Box>
-        <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1.1rem' }}>
-          BioSense
-        </Typography>
-      </Box>
+            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ bgcolor: theme.primary, p: 1, borderRadius: '12px', display: 'flex' }}>
+                      <Activity color="white" size={22} />
+                    </Box>
+                    <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1.1rem' }}>
+                      BioSense
+                    </Typography>
+                  </Box>
       
 
       <List sx={{ px: 2, mt: 1, flexGrow: 1 }}>
@@ -264,6 +262,9 @@ export default function Profile() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.bg }}>
       <Sidebar navigate={navigate} location={location} user={user} />
+
+        {/* ✅ MobileHeader здесь */}
+        <MobileHeader title="Profile" />
 
       <Box sx={{ flexGrow: 1, ml: { md: '250px' }, p: { xs: 2, md: 4 }, width: '100%' }}>
 

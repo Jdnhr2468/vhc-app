@@ -151,7 +151,7 @@ export default function Login() {
           {/* Заголовок */}
           <Typography sx={{ fontSize: '1.8rem', fontWeight: 800, color: theme.textMain,
             letterSpacing: '-0.5px', mb: 0.5 }}>
-            Welcome back 👋
+            Welcome back 
           </Typography>
           <Typography sx={{ color: theme.textSub, mb: 3.5, fontSize: '0.95rem' }}>
             Sign in to your BioSense account
