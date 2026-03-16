@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "r
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from './services/firebase';
 import { Box, CircularProgress, Snackbar, Alert, Button } from '@mui/material';
+import { LanguageProvider } from './context/LanguageContext';
 
 import Login       from "./pages/Login";
 import Register    from "./pages/Register";
@@ -14,6 +15,7 @@ import Devices     from "./pages/Devices";
 import Settings    from "./pages/Settings";
 import Onboarding  from './pages/Onboarding';
 import VerifyEmail from './pages/VerifyEmail';
+
 
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 минут
 const WARNING_TIME =  1 * 60 * 1000; // предупреждение за 1 минуту
@@ -86,6 +88,7 @@ function IdleHandler({ user }) {
   );
 }
 
+
 export default function App() {
   const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
@@ -100,6 +103,7 @@ export default function App() {
 
   return (
     <Router>
+      <LanguageProvider>
       <IdleHandler user={user} />
       <Routes>
         {/* Публичные */}
@@ -119,6 +123,7 @@ export default function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
       </Routes>
+      </LanguageProvider>
     </Router>
   );
 }

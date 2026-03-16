@@ -20,6 +20,7 @@ import AIChat from './AIChat';
 // ✅ ДОБАВЛЕНО: импорты мобильных компонентов
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
+import { useLanguage } from '../context/LanguageContext';
 
 const theme = {
   bg:        '#F8FAFC',
@@ -52,11 +53,11 @@ const INSIGHTS = [
 ];
 
 const menuItems = [
-  { label: 'Dashboard', icon: <LayoutGrid />, path: '/dashboard' },
-  { label: 'Devices',   icon: <Smartphone />, path: '/devices'   },
-  { label: 'Alerts',    icon: <Bell />,        path: '/alerts'    },
-  { label: 'Reports',   icon: <BarChart3 />,   path: '/reports'   },
-  { label: 'Settings',  icon: <Settings />,    path: '/settings'  },
+  { label: t.dashboard, icon: <LayoutGrid />, path: '/dashboard' },
+  { label: t.devices,   icon: <Smartphone />, path: '/devices'   },
+  { label: t.alerts,    icon: <Bell />,        path: '/alerts'    },
+  { label: t.reports,   icon: <BarChart3 />,   path: '/reports'   },
+  { label: t.settings,  icon: <Settings />,    path: '/settings'  },
 ];
 
 const THRESHOLDS = {
@@ -138,6 +139,7 @@ function AlertsModal({ open, onClose, alerts, onMarkRead }) {
 }
 
 function Sidebar({ navigate, location, user, alertCount }) {
+  const { t } = useLanguage();
   return (
     // ✅ БЫЛО: display: 'flex' — показывалось всегда
     // ✅ СТАЛО: display: { xs: 'none', md: 'flex' } — скрывается на мобильном
@@ -165,7 +167,7 @@ function Sidebar({ navigate, location, user, alertCount }) {
             '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } }
           }} />
           <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>
-            Live Monitoring
+            {t.liveMonitoring}
           </Typography>
         </Box>
       </Box>
@@ -212,7 +214,7 @@ function Sidebar({ navigate, location, user, alertCount }) {
             <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain }}>
               {user?.displayName || user?.email?.split('@')[0] || 'User'}
             </Typography>
-            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>Patient</Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>{t.patient}</Typography>
           </Box>
         </Box>
         <ListItemButton onClick={() => { auth.signOut(); navigate('/login'); }}
@@ -280,6 +282,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const user     = auth.currentUser;
+  const { t } = useLanguage();
 
   const [vitals, setVitals] = useState({
     hr: 72, bp: '120/80', ox: 98,
@@ -362,12 +365,12 @@ export default function Dashboard() {
   }, [user]);
 
   const biomarkers = [
-    { title: 'Heart Rate',      value: vitals.hr,                     unit: 'bpm',      icon: <Heart />,          color: '#EF4444', status: vitals.hr > 100 ? '⚠ High' : vitals.hr < 50 ? '⚠ Low' : '✓ Normal',   statusColor: vitals.hr > 100 || vitals.hr < 50 ? 'red' : 'green' },
-    { title: 'Blood Pressure',  value: vitals.bp,                     unit: 'mmHg',     icon: <Zap />,            color: '#F59E0B', status: '✓ Normal',   statusColor: 'green' },
-    { title: 'Oxygen Level',    value: vitals.ox,                     unit: '%',        icon: <Wind />,           color: '#3B82F6', status: vitals.ox < 95 ? '⚠ Low' : '✓ Optimal',  statusColor: vitals.ox < 95 ? 'red' : 'green' },
-    { title: 'Glucose',         value: vitals.gl,                     unit: 'mmol/L',   icon: <Droplets />,       color: '#8B5CF6', status: vitals.gl > 7.8 ? '⚠ High' : vitals.gl < 4 ? '⚠ Low' : '✓ Normal', statusColor: vitals.gl > 7.8 || vitals.gl < 4 ? 'red' : 'green' },
-    { title: 'Steps Today',     value: vitals.steps.toLocaleString(), unit: '/ 10,000', icon: <PersonStanding />, color: '#10B981', status: '↑ Active',   statusColor: 'green' },
-    { title: 'Calories Burned', value: vitals.cal,                    unit: 'kcal',     icon: <Flame />,          color: '#F59E0B', status: '↑ On track', statusColor: 'green' },
+    { title: t.heartRate,      value: vitals.hr,                     unit: 'bpm',      icon: <Heart />,          color: '#EF4444', status: vitals.hr > 100 ? t.high : vitals.hr < 50 ? t.low : t.normal,   statusColor: vitals.hr > 100 || vitals.hr < 50 ? 'red' : 'green' },
+    { title: t.bloodPressure,  value: vitals.bp,                     unit: 'mmHg',     icon: <Zap />,            color: '#F59E0B', status: t.normal,   statusColor: 'green' },
+    { title: t.oxygenLevel,    value: vitals.ox,                     unit: '%',        icon: <Wind />,           color: '#3B82F6', status: vitals.ox < 95 ? t.low : t.optimal,  statusColor: vitals.ox < 95 ? 'red' : 'green' },
+    { title: t.glucose,         value: vitals.gl,                     unit: 'mmol/L',   icon: <Droplets />,       color: '#8B5CF6', status: vitals.gl > 7.8 ? t.high : vitals.gl < 4 ? t.low : t.normal, statusColor: vitals.gl > 7.8 || vitals.gl < 4 ? 'red' : 'green' },
+    { title: t.stepsToday,     value: vitals.steps.toLocaleString(), unit: '/ 10,000', icon: <PersonStanding />, color: '#10B981', status: t.active,   statusColor: 'green' },
+    { title: t.caloriesBurned, value: vitals.cal,                    unit: 'kcal',     icon: <Flame />,          color: '#F59E0B', status: t.onTrack, statusColor: 'green' },
   ];
 
   return (
@@ -388,10 +391,10 @@ export default function Dashboard() {
         <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
             <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>
-              Health Dashboard
+              {t.dashboard}
             </Typography>
             <Typography sx={{ color: theme.textSub, mt: 0.3 }}>
-              Welcome back, {user?.displayName || user?.email?.split('@')[0]} 
+              {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]} 
             </Typography>
           </Box>
 
@@ -414,7 +417,7 @@ export default function Dashboard() {
                 animation: 'pulse 1.5s infinite',
                 '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } }
               }} />
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>Live</Typography>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>{t.live}</Typography>
             </Box>
             <IconButton onClick={() => navigate('/alerts')}
               sx={{ bgcolor: theme.white, border: `1px solid ${theme.border}`, p: 1.2, position: 'relative' }}>
@@ -435,14 +438,14 @@ export default function Dashboard() {
         {/* ✅ ДОБАВЛЕНО: приветствие только на мобильном */}
         <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2 }}>
           <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>
-            Welcome back, {user?.displayName || user?.email?.split('@')[0]} 👋
+            {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]} 👋
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
             <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.success,
               animation: 'pulse 1.5s infinite',
               '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } }
             }} />
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>Live Monitoring</Typography>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>{t.liveMonitoring}</Typography>
           </Box>
         </Box>
 
@@ -477,7 +480,7 @@ export default function Dashboard() {
                       <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />
                       <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: theme.primary,
                         textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        Today's Insight
+                        {t.todayInsight}
                       </Typography>
                     </Box>
                     <Typography sx={{ fontSize: '0.88rem', fontWeight: 500, color: theme.textMain, lineHeight: 1.7 }}>
@@ -509,10 +512,10 @@ export default function Dashboard() {
               boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
             }}>
               <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 0.5 }}>
-                Weekly Activity
+                {t.weeklyActivity}
               </Typography>
               <Typography sx={{ fontSize: '0.8rem', color: theme.textSub, mb: 2 }}>
-                Steps over the past week
+                {t.stepsWeek}
               </Typography>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={history} barSize={18}>
