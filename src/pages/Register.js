@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, getRedirectResult } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider, facebookProvider, appleProvider } from '../services/firebase';
 import {
@@ -33,6 +33,7 @@ export default function Register() {
   const [loading,         setLoading]         = useState(false);
   const navigate = useNavigate();
 
+
   const pwStrength = password.length > 10 ? 'Strong'
     : password.length > 6 ? 'Medium'
     : password.length > 0 ? 'Weak' : '';
@@ -42,7 +43,32 @@ export default function Register() {
     : pwStrength === 'Medium' ? '60%'
     : pwStrength === 'Weak'   ? '25%' : '0%';
 
+    useEffect(() => {
+  const handleRedirect = async () => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result) {
+        const user = result.user;
+        await setDoc(doc(db, 'users', user.uid), {
+          uid: user.uid, email: user.email,
+          displayName: user.displayName,
+          createdAt: new Date(), role: 'patient',
+        }, { merge: true });
+        const isNewUser = result._tokenResponse?.isNewUser;
+        if (isNewUser) {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      setError('Sign in failed. Please try again.');
+    }
+  };
+  handleRedirect();
+}, [navigate]);
 
+  
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
@@ -84,20 +110,27 @@ export default function Register() {
   };
 
   const handleSocialLogin = async (provider) => {
-    setError('');
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid, email: user.email,
-        displayName: user.displayName,
-        createdAt: new Date(), role: 'patient',
-      }, { merge: true });
+  setError('');
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    await setDoc(doc(db, 'users', user.uid), {
+      uid: user.uid, email: user.email,
+      displayName: user.displayName,
+      createdAt: new Date(), role: 'patient',
+    }, { merge: true });
+    
+    // ✅ Новый пользователь → онбординг, существующий → дашборд
+    const isNewUser = result._tokenResponse?.isNewUser;
+    if (isNewUser) {
+      navigate('/onboarding');
+    } else {
       navigate('/dashboard');
-    } catch (err) {
-      setError('Sign in failed. Please try again.');
     }
-  };
+  } catch (err) {
+    setError('Sign in failed. Please try again.');
+  }
+};
   
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: theme.bg }}>

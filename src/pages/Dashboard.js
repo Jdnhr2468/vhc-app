@@ -389,10 +389,17 @@ export default function Dashboard() {
   const [insight]    = useState(() => INSIGHTS[Math.floor(Math.random() * INSIGHTS.length)]);
   const [alertCount, setAlertCount] = useState(0);
   const [connectedDevices, setConnectedDevices] = useState([]);
-  const [visibleCards, setVisibleCards] = useState({
-    heartRate: true, bp: true, oxygen: true,
-    glucose: true, steps: true, calories: true,
-  });
+  const [visibleCards, setVisibleCards] = useState(() => {
+  try {
+    const cached = localStorage.getItem('visibleCards');
+    return cached ? JSON.parse(cached) : {
+      heartRate: true, bp: true, oxygen: true,
+      glucose: true, steps: true, calories: true,
+    };
+  } catch {
+    return { heartRate: true, bp: true, oxygen: true, glucose: true, steps: true, calories: true };
+  }
+});
 
   const lastAlertTime = useRef({});
   const [alerts,     setAlerts]     = useState([]);
@@ -420,10 +427,11 @@ export default function Dashboard() {
     const unsub = subscribeSettings(user.uid, (data) => {
       if (data?.visibleCards) {
         setVisibleCards(prev => ({ ...prev, ...data.visibleCards }));
+        localStorage.setItem('visibleCards', JSON.stringify(data.visibleCards));
       }
     });
     return () => unsub();
-  }, [user]);
+  }, [user?.uid]);
 
   useEffect(() => {
     if (!user) return;

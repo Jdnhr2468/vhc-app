@@ -3,7 +3,7 @@ import {
   Box, Grid, Typography, Paper, Button, Avatar,
   LinearProgress, Chip, TextField, InputAdornment,
   IconButton, List, ListItem, ListItemButton,
-  ListItemIcon, ListItemText, CircularProgress, Snackbar, Alert, Drawer, Divider
+  ListItemIcon, ListItemText, CircularProgress, Snackbar, Alert, Drawer, Divider, DialogActions, Dialog, DialogTitle, DialogContent 
 } from '@mui/material';
 import {
   User, CalendarDays, ArrowUpNarrowWide,
@@ -16,13 +16,11 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   updatePassword, reauthenticateWithCredential,
-  EmailAuthProvider
+  EmailAuthProvider, updateProfile, sendPasswordResetEmail
 } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { auth,storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../services/firebase';
 import { getUserProfile, updateUserProfile, subscribeAlerts, markAlertRead } from '../services/firestoreService';
-import { updateProfile } from 'firebase/auth';
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
@@ -231,6 +229,7 @@ export default function Profile() {
   const [editingGoal,  setEditingGoal]  = useState(false);
   const [savingGoal,   setSavingGoal]   = useState(false);
   const [snackbar,     setSnackbar]     = useState({ open: false, msg: '', severity: 'success' });
+  const [pwDialogOpen, setPwDialogOpen] = useState(false);
 
   const [profile, setProfile] = useState({
     displayName: '', age: '', height: '', weight: '', bloodType: '', gender: '', goal: '',
@@ -245,6 +244,7 @@ export default function Profile() {
   const [alerts,     setAlerts]     = useState([]);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   
   useEffect(() => {
     if (!user) return;
@@ -311,22 +311,62 @@ export default function Profile() {
     setSavingGoal(false);
   };
 
+  const handleExportData = async () => {
+  try {
+    const profileData = await getUserProfile(user.uid);
+    
+    const rows = [
+      ['Field', 'Value'],
+      ['Email', user?.email || ''],
+      ['Name', profileData?.displayName || ''],
+      ['Age', profileData?.age || ''],
+      ['Height (cm)', profileData?.height || ''],
+      ['Weight (kg)', profileData?.weight || ''],
+      ['Blood Type', profileData?.bloodType || ''],
+      ['Gender', profileData?.gender || ''],
+      ['Goal', profileData?.goal || ''],
+      [''],
+      ['30-Day Summary', ''],
+      ['Avg Heart Rate', '73 bpm'],
+      ['Avg Glucose', '5.4 mmol/L'],
+      ['Avg Sleep', '7.1 hrs'],
+      ['Avg Steps', '8,120'],
+      [''],
+      ['Exported At', new Date().toLocaleString()],
+      ['App', 'BioSense — Heriot-Watt University'],
+    ];
+    const csvContent = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href     = url;
+    link.download = `BioSense-${user?.email}-${new Date().toLocaleDateString()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showSnack('Data exported successfully!', 'success');
+  } catch (err) {
+    showSnack('Failed to export data.', 'error');
+  }
+};
+
   // ── Смена пароля ──
   const handlePasswordSave = async () => {
-    if (password.new !== password.confirm) { showSnack('Passwords do not match!', 'error'); return; }
-    if (password.new.length < 6)           { showSnack('Password must be at least 6 characters.', 'error'); return; }
-    setPwSaving(true);
-    try {
-      const credential = EmailAuthProvider.credential(user.email, password.current);
-      await reauthenticateWithCredential(user, credential);
-      await updatePassword(user, password.new);
-      setPassword({ current: '', new: '', confirm: '' });
-      showSnack('Password updated successfully!', 'success');
-    } catch (err) {
-      showSnack(err.code === 'auth/wrong-password' ? 'Current password is incorrect.' : 'Failed to update password.', 'error');
-    }
-    setPwSaving(false);
-  };
+  if (password.new !== password.confirm) { showSnack('Passwords do not match!', 'error'); return; }
+  if (password.new.length < 6)           { showSnack('Password must be at least 6 characters.', 'error'); return; }
+  setPwSaving(true);
+  try {
+    const credential = EmailAuthProvider.credential(user.email, password.current);
+    await reauthenticateWithCredential(user, credential);
+    await updatePassword(user, password.new);
+    await sendPasswordResetEmail(auth, user.email); // ← письмо на почту
+    setPwDialogOpen(false);            // ← закрываем диалог
+    setPassword({ current: '', new: '', confirm: '' }); // ← сбрасываем поля
+    showSnack('Password updated! Check your email for confirmation.', 'success');
+  } catch (err) {
+    showSnack(err.code === 'auth/wrong-password' ? 'Current password is incorrect.' : 'Failed to update password.', 'error');
+  }
+  setPwSaving(false);
+};
 
   const showSnack = (msg, severity = 'success') =>
     setSnackbar({ open: true, msg, severity });
@@ -717,56 +757,90 @@ export default function Profile() {
               </Paper>
 
               {/* Change Password */}
-              <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: `1px solid ${theme.border}` }}>
-                <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 2,
-                  display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <KeyRound size={16} color={theme.warning} /> Change Password
-                </Typography>
-                <Grid container spacing={2}>
-                  {[
-                    { key: 'current', label: 'Current Password', showToggle: false },
-                    { key: 'new',     label: 'New Password',     showToggle: true  },
-                    { key: 'confirm', label: 'Confirm Password', showToggle: false },
-                  ].map(field => (
-                    <Grid item xs={12} sm={4} key={field.key}>
-                      <TextField fullWidth size="small" label={field.label}
-                        type={field.showToggle && showPass ? 'text' : 'password'}
-                        value={password[field.key]}
-                        onChange={e => setPassword(p => ({ ...p, [field.key]: e.target.value }))}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                        InputProps={{
-                          endAdornment: field.showToggle ? (
-                            <InputAdornment position="end">
-                              <IconButton size="small" onClick={() => setShowPass(!showPass)}>
-                                {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
-                              </IconButton>
-                            </InputAdornment>
-                          ) : null,
-                        }}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-                {password.new && (
-                  <Box sx={{ mt: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>Password strength</Typography>
-                      <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: pwStrengthColor }}>{pwStrength}</Typography>
-                    </Box>
-                    <Box sx={{ height: 4, bgcolor: theme.bg, borderRadius: 2 }}>
-                      <Box sx={{ height: '100%', borderRadius: 2, transition: 'width 0.3s',
-                        width: pwStrengthWidth, bgcolor: pwStrengthColor }} />
-                    </Box>
-                  </Box>
-                )}
-                <Button onClick={handlePasswordSave} disabled={pwSaving}
-                  startIcon={pwSaving ? <CircularProgress size={14} color="inherit" /> : null}
-                  sx={{ mt: 2, borderRadius: '12px', textTransform: 'none', fontWeight: 700,
-                    bgcolor: theme.primary, color: 'white', px: 3,
-                    '&:hover': { bgcolor: '#1D4ED8' } }}>
-                  {pwSaving ? 'Updating...' : 'Update Password'}
-                </Button>
-              </Paper>
+<Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: `1px solid ${theme.border}` }}>
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Typography sx={{ fontWeight: 700, color: theme.textMain,
+      display: 'flex', alignItems: 'center', gap: 1 }}>
+      <KeyRound size={16} color={theme.warning} /> Change Password
+    </Typography>
+    <Button
+      startIcon={<KeyRound size={16} />}
+      onClick={() => setPwDialogOpen(true)}
+      sx={{
+        borderRadius: '12px', textTransform: 'none', fontWeight: 600,
+        bgcolor: theme.primaryBg, color: theme.primary,
+        '&:hover': { bgcolor: '#DBEAFE' },
+      }}>
+      Change
+    </Button>
+  </Box>
+  <Typography sx={{ fontSize: '0.82rem', color: theme.textSub, mt: 1 }}>
+    After changing your password, a confirmation email will be sent to {user?.email}
+  </Typography>
+</Paper>
+
+{/* Dialog смены пароля */}
+<Dialog open={pwDialogOpen} onClose={() => setPwDialogOpen(false)}
+  PaperProps={{ sx: { borderRadius: '24px', p: 1, minWidth: { xs: '90vw', sm: 420 } } }}>
+  <DialogTitle sx={{ fontWeight: 800, color: theme.textMain, pb: 1 }}>
+    🔐 Change Password
+  </DialogTitle>
+  <DialogContent>
+    <Typography sx={{ fontSize: '0.82rem', color: theme.textSub, mb: 2.5 }}>
+      Enter your current password and choose a new one.
+    </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {[
+        { key: 'current', label: 'Current Password', showToggle: false },
+        { key: 'new',     label: 'New Password',     showToggle: true  },
+        { key: 'confirm', label: 'Confirm Password', showToggle: false },
+      ].map(field => (
+        <TextField key={field.key} fullWidth size="small" label={field.label}
+          type={field.showToggle && showPass ? 'text' : 'password'}
+          value={password[field.key]}
+          onChange={e => setPassword(p => ({ ...p, [field.key]: e.target.value }))}
+          sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+          InputProps={{
+            endAdornment: field.showToggle ? (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => setShowPass(!showPass)}>
+                  {showPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                </IconButton>
+              </InputAdornment>
+            ) : null,
+          }}
+        />
+      ))}
+
+      {password.new && (
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+            <Typography sx={{ fontSize: '0.72rem', color: theme.textSub }}>Password strength</Typography>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: pwStrengthColor }}>{pwStrength}</Typography>
+          </Box>
+          <Box sx={{ height: 4, bgcolor: theme.bg, borderRadius: 2 }}>
+            <Box sx={{ height: '100%', borderRadius: 2, transition: 'width 0.3s',
+              width: pwStrengthWidth, bgcolor: pwStrengthColor }} />
+          </Box>
+        </Box>
+      )}
+    </Box>
+  </DialogContent>
+  <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
+    <Button onClick={() => { setPwDialogOpen(false); setPassword({ current: '', new: '', confirm: '' }); }}
+      sx={{ borderRadius: '12px', textTransform: 'none', color: theme.textSub,
+        border: `1px solid ${theme.border}` }}>
+      Cancel
+    </Button>
+    <Button onClick={handlePasswordSave} disabled={pwSaving}
+      startIcon={pwSaving ? <CircularProgress size={14} color="inherit" /> : null}
+      sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+        bgcolor: theme.primary, color: 'white', px: 3,
+        '&:hover': { bgcolor: '#1D4ED8' } }}>
+      {pwSaving ? 'Updating...' : 'Update Password'}
+    </Button>
+  </DialogActions>
+</Dialog>
 
               {/* Data & Privacy */}
               <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: `1px solid ${theme.border}` }}>
@@ -775,10 +849,10 @@ export default function Profile() {
                   <Shield size={16} color={theme.primary} /> Data & Privacy
                 </Typography>
                 {[
-                  { icon: <Download size={18} />, label: 'Export My Data',  desc: 'Download all health records as CSV',    color: theme.primary },
-                  { icon: <Globe size={18} />,    label: 'Privacy Policy',  desc: 'Read our GDPR-compliant privacy policy', color: '#8B5CF6'     },
+                  { icon: <Download size={18} />, label: 'Export My Data',  desc: 'Download all health records as CSV',    color: theme.primary, action: handleExportData },
+                  { icon: <Globe size={18} />,    label: 'Privacy Policy',  desc: 'Read our GDPR-compliant privacy policy', color: '#8B5CF6',    action: () => setPrivacyOpen(true) },
                 ].map((item, i) => (
-                  <Box key={i} sx={{ display: 'flex', alignItems: 'center',
+                  <Box key={i} onClick={item.action} sx={{ display: 'flex', alignItems: 'center',
                     p: 2, mb: 1.5, borderRadius: '14px', border: `1px solid ${theme.border}`,
                     cursor: 'pointer', transition: 'all 0.2s',
                     '&:hover': { bgcolor: theme.bg, transform: 'translateX(4px)' },
@@ -800,6 +874,25 @@ export default function Profile() {
                 ))}
               </Paper>
 
+                {/* Logout — только на мобильном */}
+<Box sx={{ display: { xs: 'block', md: 'none' } }}>
+  <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: `1px solid ${theme.border}` }}>
+    <Button
+      fullWidth
+      startIcon={<LogOut size={18} />}
+      onClick={() => { auth.signOut(); navigate('/login'); }}
+      sx={{
+        py: 1.4, borderRadius: '12px', textTransform: 'none',
+        fontWeight: 700, fontSize: '0.95rem',
+        bgcolor: '#FEF2F2', color: theme.danger,
+        border: `1px solid #FECACA`,
+        '&:hover': { bgcolor: '#FEE2E2' },
+      }}>
+      Sign Out
+    </Button>
+  </Paper>
+</Box>
+
             </Box>
           </Grid>
         </Grid>
@@ -820,6 +913,40 @@ export default function Profile() {
   alerts={alerts}
   onMarkRead={(id) => markAlertRead(user.uid, id)}
 />
+      <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)}
+  PaperProps={{ sx: { borderRadius: '24px', p: 1, maxWidth: 560 } }}>
+  <DialogTitle sx={{ fontWeight: 800, color: theme.textMain }}>
+    🔒 Privacy Policy
+  </DialogTitle>
+  <DialogContent>
+    <Typography sx={{ fontSize: '0.85rem', color: theme.textSub, lineHeight: 1.8, mb: 2 }}>
+      <strong>BioSense Health Monitor</strong> is committed to protecting your personal health data.
+    </Typography>
+    {[
+      { title: '📊 Data We Collect', text: 'We collect health metrics (heart rate, glucose, oxygen, blood pressure), device information, and personal profile data you provide.' },
+      { title: '🔐 How We Store It', text: 'All data is encrypted and stored securely on Firebase (Google Cloud). We never sell your data to third parties.' },
+      { title: '🌍 GDPR Compliance', text: 'You have the right to access, modify, and delete your data at any time. Use "Export My Data" to download your records.' },
+      { title: '📧 Contact', text: 'For privacy concerns, contact us at biosense@hw.ac.uk' },
+    ].map((section, i) => (
+      <Box key={i} sx={{ mb: 2, p: 2, bgcolor: theme.bg, borderRadius: '14px' }}>
+        <Typography sx={{ fontWeight: 700, color: theme.textMain, fontSize: '0.88rem', mb: 0.5 }}>
+          {section.title}
+        </Typography>
+        <Typography sx={{ fontSize: '0.82rem', color: theme.textSub, lineHeight: 1.7 }}>
+          {section.text}
+        </Typography>
+      </Box>
+    ))}
+  </DialogContent>
+  <DialogActions sx={{ px: 3, pb: 2 }}>
+    <Button onClick={() => setPrivacyOpen(false)}
+      sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+        bgcolor: theme.primary, color: 'white', px: 3,
+        '&:hover': { bgcolor: '#1D4ED8' } }}>
+      Got it
+    </Button>
+  </DialogActions>
+</Dialog>
       {/* ✅ ДОБАВЛЕНО: нижняя навигация — видна только на телефоне */}
             <BottomNav />
     </Box>

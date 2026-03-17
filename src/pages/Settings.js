@@ -289,7 +289,7 @@ export default function SettingsPage() {
   const [notifTypes,   setNotifTypes]   = useState(DEFAULT_SETTINGS.notifTypes);
   const [thresholds,   setThresholds]   = useState(DEFAULT_SETTINGS.thresholds);
   const [visibleCards, setVisibleCards] = useState(DEFAULT_SETTINGS.visibleCards);
-  const [activeTab,    setActiveTab]    = useState('language');
+const [activeTab, setActiveTab] = useState(null);
   const [alerts,     setAlerts]     = useState([]);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
@@ -333,6 +333,16 @@ useEffect(() => {
     load();
   }, [user]);
 
+  // После всех useState добавь:
+useEffect(() => {
+  // На десктопе автоматически выбираем первый таб
+  const isMobile = window.innerWidth < 900;
+  if (!isMobile && !activeTab) {
+    setActiveTab('language');
+  }
+}, [activeTab]);
+
+
   const handleSave = async () => {
     setSaving(true);
     // ✅ Обновляем глобальный язык и шрифт
@@ -371,6 +381,10 @@ useEffect(() => {
               {t.settings}
             </Typography>
             {settingsTabs.map(tab => (
+  <React.Fragment key={tab.key}>
+    {tab.key === 'about' && (
+      <Box sx={{ height: '1px', bgcolor: theme.border, my: 1 }} />
+    )}
               <Box key={tab.key} onClick={() => setActiveTab(tab.key)} sx={{
                 px: 1.5, py: 1, borderRadius: '10px', cursor: 'pointer', mb: 0.5,
                 display: 'flex', alignItems: 'center', gap: 1,
@@ -386,6 +400,7 @@ useEffect(() => {
                   {tab.label}
                 </Typography>
               </Box>
+              </React.Fragment>
             ))}
           </Box>
 
@@ -418,50 +433,84 @@ useEffect(() => {
           </Box>
         </Box>
 
-        {/* Мобильный */}
-        <Box sx={{ display: { xs: 'block', md: 'none' }, p: 2, pb: 10 }}>
-          <Box sx={{
-  display: 'flex', gap: 1, overflowX: 'auto', pb: 1.5, mb: 2,
-  '&::-webkit-scrollbar': { display: 'none' },
-}}>
-  {settingsTabs.map(tab => (
-    <Box key={tab.key} onClick={() => setActiveTab(tab.key)} sx={{
-      flexShrink: 0, px: 2, py: 0.8, borderRadius: '20px', cursor: 'pointer',
-      bgcolor: activeTab === tab.key ? theme.primary : theme.white,
-      color:   activeTab === tab.key ? 'white' : theme.textSub,
-      border:  `1px solid ${activeTab === tab.key ? theme.primary : theme.border}`,
-      fontSize: '0.8rem', fontWeight: 600,
-      display: 'flex', alignItems: 'center', gap: 0.5,
-    }}>
-      <span>{tab.emoji}</span>
-      <span>{tab.label}</span>
-    </Box>
-  ))}
-</Box>
-
-
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            <Button onClick={handleSave} disabled={saving} size="small"
-              startIcon={saving ? <CircularProgress size={14} color="inherit" /> : saved ? <Check size={14} /> : null}
-              sx={{
-                bgcolor: saved ? theme.success : theme.primary, color: 'white',
-                borderRadius: '12px', textTransform: 'none', fontWeight: 700,
-                '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
-              }}>
-              {saving ? t.saving : saved ? t.saved : t.saveChanges}
-            </Button>
+        {/* Мобильный — iPhone стиль */}
+<Box sx={{ display: { xs: 'block', md: 'none' }, pb: 10 }}>
+  
+  {/* Список разделов — показывается когда ничего не выбрано */}
+  {!activeTab ? (
+    <Box>
+      <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, px: 2, pt: 2, pb: 1 }}>
+        {t.settings}
+      </Typography>
+      <Paper elevation={0} sx={{ mx: 2, borderRadius: '16px', border: `1px solid ${theme.separator}`, overflow: 'hidden' }}>
+        {settingsTabs.map((tab, i) => (
+          <Box key={tab.key}>
+            <Box onClick={() => setActiveTab(tab.key)} sx={{
+              display: 'flex', alignItems: 'center', gap: 1.5,
+              px: 2, py: 1.5, cursor: 'pointer',
+              '&:hover': { bgcolor: '#F9F9F9' },
+            }}>
+              <Typography sx={{ fontSize: '1.2rem' }}>{tab.emoji}</Typography>
+              <Typography sx={{ flex: 1, fontSize: '0.95rem', fontWeight: 500, color: theme.textMain }}>
+                {tab.label}
+              </Typography>
+              <ChevronRight size={16} color={theme.textMuted} />
+            </Box>
+            {i < settingsTabs.length - 1 && (
+              <Divider sx={{ ml: '52px', borderColor: theme.separator }} />
+            )}
           </Box>
+        ))}
+      </Paper>
+    </Box>
+  ) : (
+    /* Контент выбранного раздела */
+    <Box>
+      {/* Хедер с кнопкой назад */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, pt: 2, pb: 1 }}>
+        <Box onClick={() => setActiveTab(null)} sx={{
+          display: 'flex', alignItems: 'center', gap: 0.5,
+          cursor: 'pointer', color: theme.primary,
+        }}>
+          <ChevronRight size={20} style={{ transform: 'rotate(180deg)' }} color={theme.primary} />
+          <Typography sx={{ fontSize: '0.95rem', color: theme.primary, fontWeight: 500 }}>
+            {t.settings}
+          </Typography>
+        </Box>
+      </Box>
 
-          <TabContent
-            activeTab={activeTab}
-            language={languageLocal} setLanguage={setLanguageLocal}
-            units={units} setUnits={setUnits}
-            fontSize={fontSize} setFontSize={setFontSize}
-            notifTime={notifTime} setNotifTime={setNotifTime}
-            notifTypes={notifTypes} setNotifTypes={setNotifTypes}
-            thresholds={thresholds} setThresholds={setThresholds}
-            visibleCards={visibleCards} toggleCard={toggleCard}
+      <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: theme.textMain, px: 2, pb: 2 }}>
+        {settingsTabs.find(tab => tab.key === activeTab)?.label}
+      </Typography>
+
+      {/* Кнопка Save */}
+          <Box sx={{ px: 2, mb: 2 }}>
+        <Button onClick={handleSave} disabled={saving} fullWidth
+          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : saved ? <Check size={14} /> : null}
+          sx={{
+            bgcolor: saved ? theme.success : theme.primary, color: 'white',
+            borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+            '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
+          }}>
+          {saving ? t.saving : saved ? t.saved : t.saveChanges}
+        </Button>
+      </Box>
+
+          {/* Контент */}
+      <Box sx={{ px: 2 }}>
+        <TabContent
+          activeTab={activeTab}
+          language={languageLocal} setLanguage={setLanguageLocal}
+          units={units} setUnits={setUnits}
+          fontSize={fontSize} setFontSize={setFontSize}
+          notifTime={notifTime} setNotifTime={setNotifTime}
+          notifTypes={notifTypes} setNotifTypes={setNotifTypes}
+          thresholds={thresholds} setThresholds={setThresholds}
+          visibleCards={visibleCards} toggleCard={toggleCard}
           />
+        </Box>
+        </Box>
+  )}
         </Box>
       </Box>
       <AlertsModal

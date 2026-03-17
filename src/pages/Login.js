@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup,sendPasswordResetEmail  } from 'firebase/auth';
+import { useState, useEffect } from 'react';
+import { signInWithEmailAndPassword, signInWithPopup,sendPasswordResetEmail, signInWithRedirect, getRedirectResult  } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider, appleProvider  } from '../services/firebase';
 import {
   Box, Typography, TextField, Button,
@@ -31,6 +31,25 @@ export default function Login() {
   const navigate = useNavigate();
   const [resetSent, setResetSent] = useState(false);
 
+  useEffect(() => {
+  const handleRedirect = async () => {
+    try {
+      const result = await getRedirectResult(auth);
+      if (result) {
+        const isNewUser = result._tokenResponse?.isNewUser;
+        if (isNewUser) {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
+      }
+    } catch (err) {
+      setError('Sign in failed. Please try again.');
+    }
+  };
+  handleRedirect();
+}, [navigate]);
+
 const handleForgotPassword = async () => {
   if (!email) {
     setError('Please enter your email address first.');
@@ -45,31 +64,26 @@ const handleForgotPassword = async () => {
   }
 };
 
-  const handleGoogle = async () => {
+  const handleSocialLogin = async (provider) => {
+  setError('');
   try {
-    await signInWithPopup(auth, googleProvider);
-    // Создаём профиль если новый пользователь
-    navigate('/dashboard');
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // На мобильном используем redirect
+      await signInWithRedirect(auth, provider);
+    } else {
+      // На десктопе используем popup
+      const result = await signInWithPopup(auth, provider);
+      const isNewUser = result._tokenResponse?.isNewUser;
+      if (isNewUser) {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
+    }
   } catch (err) {
-    setError('Google sign in failed. Please try again.');
-  }
-};
-
-const handleFacebook = async () => {
-  try {
-    await signInWithPopup(auth, facebookProvider);
-    navigate('/dashboard');
-  } catch (err) {
-    setError('Facebook sign in failed. Please try again.');
-  }
-};
-
-const handleApple = async () => {
-  try {
-    await signInWithPopup(auth, appleProvider);
-    navigate('/dashboard');
-  } catch (err) {
-    setError('Apple sign in failed. Please try again.');
+    setError('Sign in failed. Please try again.');
   }
 };
 
@@ -300,7 +314,7 @@ const handleApple = async () => {
 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
   
   {/* Google */}
-  <Button fullWidth onClick={handleGoogle}
+  <Button fullWidth onClick={() => handleSocialLogin(googleProvider)}
     sx={{
       py: 1.4, borderRadius: '14px', textTransform: 'none',
       fontWeight: 600, fontSize: '0.95rem',
@@ -319,7 +333,7 @@ const handleApple = async () => {
   </Button>
 
   {/* Facebook */}
-  <Button fullWidth onClick={handleFacebook}
+  <Button fullWidth onClick={() => handleSocialLogin(facebookProvider)}
     sx={{
       py: 1.4, borderRadius: '14px', textTransform: 'none',
       fontWeight: 600, fontSize: '0.95rem',
@@ -334,7 +348,7 @@ const handleApple = async () => {
   </Button>
 
     {/* Apple */}
-<Button fullWidth onClick={handleApple}
+<Button fullWidth onClick={() => handleSocialLogin(appleProvider)}
   sx={{
     py: 1.4, borderRadius: '14px', textTransform: 'none',
     fontWeight: 600, fontSize: '0.95rem',

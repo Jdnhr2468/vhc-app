@@ -342,73 +342,99 @@ export default function Reports() {
 
       <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
 
-        {/* Топбар */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>
-              Health Reports
-            </Typography>
-            <Typography sx={{ color: theme.textSub, mt: 0.3 }}>
-              Detailed analytics and trends for your health metrics
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              startIcon={<Download size={16} />}
-              onClick={handleDownloadPDF}
-              disabled={downloading}
-              sx={{
-                borderRadius: '12px', textTransform: 'none', fontWeight: 600,
-                bgcolor: theme.primary, color: 'white',
-                '&:hover': { bgcolor: '#1D4ED8' },
-                '&:disabled': { bgcolor: theme.textMuted },
-              }}>
-              {downloading ? 'Generating...' : 'Download PDF'}
-            </Button>
-            <Button
-              startIcon={<Share2 size={16} />}
-              onClick={() => {
-                try {
-                  const el = document.createElement('textarea');
-                  el.value = window.location.href;
-                  document.body.appendChild(el);
-                  el.select();
-                  document.execCommand('copy');
-                  document.body.removeChild(el);
-                  alert('Link copied!');
-              } catch {
-                  alert('Link: ' + window.location.href);
-              }
-              }}
-              sx={{
-                borderRadius: '12px', textTransform: 'none', fontWeight: 600,
-                border: `1px solid ${theme.border}`, color: theme.textSub,
-                bgcolor: theme.white, '&:hover': { bgcolor: theme.bg },
-              }}>
-              Share
-            </Button>
-          </Stack>
-        </Box>
+        {/* Десктоп топбар — без изменений */}
+<Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+  <Box>
+    <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>
+      Health Reports
+    </Typography>
+    <Typography sx={{ color: theme.textSub, mt: 0.3 }}>
+      Detailed analytics and trends for your health metrics
+    </Typography>
+  </Box>
+  <Stack direction="row" spacing={1.5}>
+    <Button startIcon={<Download size={16} />} onClick={handleDownloadPDF} disabled={downloading}
+      sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600,
+        bgcolor: theme.primary, color: 'white',
+        '&:hover': { bgcolor: '#1D4ED8' }, '&:disabled': { bgcolor: theme.textMuted } }}>
+      {downloading ? 'Generating...' : 'Download PDF'}
+    </Button>
+    <Button startIcon={<Share2 size={16} />}
+      onClick={() => { try { const el = document.createElement('textarea'); el.value = window.location.href; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('Link copied!'); } catch { alert('Link: ' + window.location.href); } }}
+      sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600,
+        border: `1px solid ${theme.border}`, color: theme.textSub,
+        bgcolor: theme.white, '&:hover': { bgcolor: theme.bg } }}>
+      Share
+    </Button>
+  </Stack>
+</Box>
 
-        {/* Табы */}
-        <Paper elevation={0} sx={{
-          mb: 3, borderRadius: '20px', border: `1px solid ${theme.border}`,
-          bgcolor: theme.white, p: 0.5, display: 'inline-flex', gap: 0.5
-        }}>
-          {tabs.map(tab => (
-            <Button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              startIcon={tab.icon}
-              sx={{
-                borderRadius: '14px', textTransform: 'none', fontWeight: 600,
-                fontSize: '0.85rem', px: 2, py: 1,
-                bgcolor: activeTab === tab.key ? theme.primary : 'transparent',
-                color:   activeTab === tab.key ? 'white' : theme.textSub,
-                '&:hover': { bgcolor: activeTab === tab.key ? '#1D4ED8' : theme.bg },
-              }}>
-              {tab.label}
-            </Button>
-          ))}
-        </Paper>
+{/* Мобильный топбар */}
+<Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
+  <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: theme.textMain }}>
+    Health Reports
+  </Typography>
+  <Typography sx={{ color: theme.textSub, mt: 0.3, fontSize: '0.82rem' }}>
+    Detailed analytics and trends
+  </Typography>
+  <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+    <Button startIcon={<Download size={16} />} onClick={handleDownloadPDF} disabled={downloading}
+      size="small" fullWidth
+      sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600,
+        bgcolor: theme.primary, color: 'white',
+        '&:hover': { bgcolor: '#1D4ED8' }, '&:disabled': { bgcolor: theme.textMuted } }}>
+      {downloading ? 'Generating...' : 'Download PDF'}
+    </Button>
+    <Button startIcon={<Share2 size={16} />} size="small" fullWidth
+      onClick={() => { try { const el = document.createElement('textarea'); el.value = window.location.href; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); alert('Link copied!'); } catch { alert('Link: ' + window.location.href); } }}
+      sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600,
+        border: `1px solid ${theme.border}`, color: theme.textSub,
+        bgcolor: theme.white, '&:hover': { bgcolor: theme.bg } }}>
+      Share
+    </Button>
+  </Box>
+</Box>
+
+        {/* Десктоп табы — без изменений */}
+<Paper elevation={0} sx={{
+  mb: 3, borderRadius: '20px', border: `1px solid ${theme.border}`,
+  bgcolor: theme.white, p: 0.5, display: { xs: 'none', md: 'inline-flex' }, gap: 0.5
+}}>
+  {tabs.map(tab => (
+    <Button key={tab.key} onClick={() => setActiveTab(tab.key)}
+      startIcon={tab.icon}
+      sx={{
+        borderRadius: '14px', textTransform: 'none', fontWeight: 600,
+        fontSize: '0.85rem', px: 2, py: 1,
+        bgcolor: activeTab === tab.key ? theme.primary : 'transparent',
+        color:   activeTab === tab.key ? 'white' : theme.textSub,
+        '&:hover': { bgcolor: activeTab === tab.key ? '#1D4ED8' : theme.bg },
+      }}>
+      {tab.label}
+    </Button>
+  ))}
+</Paper>
+
+{/* Мобильный скролл табов */}
+<Box sx={{
+  display: { xs: 'flex', md: 'none' }, gap: 1, mb: 3,
+  overflowX: 'auto', '&::-webkit-scrollbar': { display: 'none' },
+}}>
+  {tabs.map(tab => (
+    <Button key={tab.key} onClick={() => setActiveTab(tab.key)}
+      startIcon={tab.icon}
+      sx={{
+        borderRadius: '14px', textTransform: 'none', fontWeight: 600,
+        fontSize: '0.82rem', px: 1.5, py: 0.8, flexShrink: 0,
+        bgcolor: activeTab === tab.key ? theme.primary : theme.white,
+        color:   activeTab === tab.key ? 'white' : theme.textSub,
+        border: `1px solid ${activeTab === tab.key ? theme.primary : theme.border}`,
+        '&:hover': { bgcolor: activeTab === tab.key ? '#1D4ED8' : theme.bg },
+      }}>
+      {tab.label}
+    </Button>
+  ))}
+</Box>
 
         <Grid container spacing={3}>
 
