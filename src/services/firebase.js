@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { GoogleAuthProvider, FacebookAuthProvider, signInWithPopup, OAuthProvider } from 'firebase/auth';
+import { GoogleAuthProvider, FacebookAuthProvider, OAuthProvider } from 'firebase/auth';
 
 
 

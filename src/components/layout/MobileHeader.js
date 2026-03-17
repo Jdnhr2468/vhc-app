@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, IconButton, Avatar } from '@mui/material';
-import { Bell, Activity } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../../services/firebase';
 import BioSenseLogo from '../BioSenseLogo';

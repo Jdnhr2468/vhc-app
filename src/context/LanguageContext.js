@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { getUserSettings } from '../services/firestoreService';
 
 const translations = {
