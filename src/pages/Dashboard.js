@@ -558,7 +558,7 @@ export default function Dashboard() {
           <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>
-                {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]} 👋
+                {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]} 
               </Typography>
               {/* ✅ НОВОЕ: погода на мобильном */}
               <WeatherWidget language={language} />
