@@ -431,6 +431,7 @@ export default function Dashboard() {
       }
     });
     return () => unsub();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
   useEffect(() => {
