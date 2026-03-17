@@ -385,7 +385,7 @@ useEffect(() => {
     {tab.key === 'about' && (
       <Box sx={{ height: '1px', bgcolor: theme.border, my: 1 }} />
     )}
-              <Box key={tab.key} onClick={() => setActiveTab(tab.key)} sx={{
+              <Box onClick={() => setActiveTab(tab.key)} sx={{
                 px: 1.5, py: 1, borderRadius: '10px', cursor: 'pointer', mb: 0.5,
                 display: 'flex', alignItems: 'center', gap: 1,
                 bgcolor: activeTab === tab.key ? theme.white : 'transparent',
@@ -483,18 +483,7 @@ useEffect(() => {
         {settingsTabs.find(tab => tab.key === activeTab)?.label}
       </Typography>
 
-      {/* Кнопка Save */}
-          <Box sx={{ px: 2, mb: 2 }}>
-        <Button onClick={handleSave} disabled={saving} fullWidth
-          startIcon={saving ? <CircularProgress size={14} color="inherit" /> : saved ? <Check size={14} /> : null}
-          sx={{
-            bgcolor: saved ? theme.success : theme.primary, color: 'white',
-            borderRadius: '12px', textTransform: 'none', fontWeight: 700,
-            '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
-          }}>
-          {saving ? t.saving : saved ? t.saved : t.saveChanges}
-        </Button>
-      </Box>
+
 
           {/* Контент */}
       <Box sx={{ px: 2 }}>
@@ -509,6 +498,20 @@ useEffect(() => {
           visibleCards={visibleCards} toggleCard={toggleCard}
           />
         </Box>
+        {/* Кнопка Save — только не для about */}
+{activeTab !== 'about' && (
+  <Box sx={{ px: 2, mt: 2, mb: 2 }}>
+    <Button onClick={handleSave} disabled={saving} fullWidth
+      startIcon={saving ? <CircularProgress size={14} color="inherit" /> : saved ? <Check size={14} /> : null}
+      sx={{
+        bgcolor: saved ? theme.success : theme.primary, color: 'white',
+        borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+        '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
+      }}>
+      {saving ? t.saving : saved ? t.saved : t.saveChanges}
+    </Button>
+  </Box>
+)}
         </Box>
   )}
         </Box>

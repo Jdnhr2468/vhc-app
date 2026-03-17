@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup,sendPasswordResetEmail, signInWithRedirect, getRedirectResult  } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup,sendPasswordResetEmail, getRedirectResult  } from 'firebase/auth';
 import { auth, googleProvider, facebookProvider, appleProvider  } from '../services/firebase';
 import {
   Box, Typography, TextField, Button,
