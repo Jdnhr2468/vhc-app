@@ -16,6 +16,8 @@ import { auth } from '../services/firebase';
 import { subscribeAlerts, markAlertRead, addAlert } from '../services/firestoreService';
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
+import { useLanguage } from '../context/LanguageContext';
+import BioSenseLogo from '../components/BioSenseLogo';
 
 const theme = {
   bg:        '#F8FAFC',
@@ -32,13 +34,7 @@ const theme = {
   danger:    '#EF4444',
 };
 
-const menuItems = [
-  { label: 'Dashboard', icon: <LayoutGrid />, path: '/dashboard' },
-  { label: 'Devices',   icon: <Smartphone />, path: '/devices'   },
-  { label: 'Alerts',    icon: <Bell />,        path: '/alerts'    },
-  { label: 'Reports',   icon: <BarChart3 />,   path: '/reports'   },
-  { label: 'Settings',  icon: <Settings />,    path: '/settings'  },
-];
+
 
 const severityConfig = {
   high:   { bg: '#FEF2F2', color: '#B91C1C', border: '#FECACA', iconColor: '#DC2626', label: 'High' },
@@ -69,6 +65,14 @@ const formatDate = (timestamp) => {
 };
 
 function Sidebar({ navigate, location, user, unreadCount }) {
+  const { t } = useLanguage();
+    const menuItems = [
+    { label: t.dashboard, icon: <LayoutGrid />, path: '/dashboard' },
+    { label: t.devices,   icon: <Smartphone />, path: '/devices'   },
+    { label: t.alerts,    icon: <Bell />,        path: '/alerts'    },
+    { label: t.reports,   icon: <BarChart3 />,   path: '/reports'   },
+    { label: t.settings,  icon: <Settings />,    path: '/settings'  },
+  ];
   return (
     <Box sx={{
       width: 250, bgcolor: theme.white,
@@ -77,14 +81,9 @@ function Sidebar({ navigate, location, user, unreadCount }) {
       borderRight: `1px solid ${theme.border}`,
       position: 'fixed', height: '100vh', zIndex: 100,
     }}>
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box sx={{ bgcolor: theme.primary, p: 1, borderRadius: '12px', display: 'flex' }}>
-          <Activity color="white" size={22} />
-        </Box>
-        <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1.1rem' }}>
-          BioSense
-        </Typography>
-      </Box>
+      <Box sx={{ p: 3 }}>
+  <BioSenseLogo variant="sidebar" />
+</Box>
 
       <List sx={{ px: 2, mt: 1, flexGrow: 1 }}>
         {menuItems.map(item => {
@@ -128,14 +127,14 @@ function Sidebar({ navigate, location, user, unreadCount }) {
             <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain }}>
               {user?.displayName || user?.email?.split('@')[0] || 'User'}
             </Typography>
-            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>Patient</Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>{t.patient}</Typography>
           </Box>
         </Box>
         <ListItemButton onClick={() => { auth.signOut(); navigate('/login'); }}
           sx={{ borderRadius: '12px', color: theme.textMuted, py: 1,
             '&:hover': { bgcolor: '#FEF2F2', color: theme.danger } }}>
           <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}><LogOut size={18} /></ListItemIcon>
-          <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
+          <ListItemText primary={t.logout} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
         </ListItemButton>
       </Box>
     </Box>
@@ -146,6 +145,7 @@ export default function Alerts() {
   const navigate = useNavigate();
   const location = useLocation();
   const user     = auth.currentUser;
+  const { t } = useLanguage();
 
   const [alerts,         setAlerts]         = useState([]);
   const [loading,        setLoading]        = useState(true);
@@ -225,7 +225,7 @@ export default function Alerts() {
         <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box>
             <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>
-              Alerts
+              {t.alerts}
             </Typography>
             <Typography sx={{ color: theme.textSub, mt: 0.3 }}>
               {unreadCount > 0
@@ -236,7 +236,7 @@ export default function Alerts() {
           {unreadCount > 0 && (
             <Button variant="outlined" size="small" onClick={markAllRead}
               sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 600 }}>
-              Mark all as read ({unreadCount})
+              {t.markAllRead} ({unreadCount})        
             </Button>
           )}
         </Box>
@@ -244,7 +244,7 @@ export default function Alerts() {
         {/* ✅ ДОБАВЛЕНО: мобильный заголовок */}
         <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2 }}>
           <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>
-            Alerts
+            {t.alerts}
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 0.5 }}>
             <Typography sx={{ color: theme.textSub, fontSize: '0.85rem' }}>
@@ -257,7 +257,7 @@ export default function Alerts() {
                 sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600,
                   fontSize: '0.75rem', bgcolor: theme.primary, color: 'white',
                   '&:hover': { bgcolor: '#1D4ED8' } }}>
-                Mark all read
+                {t.markAllRead}
               </Button>
             )}
           </Box>

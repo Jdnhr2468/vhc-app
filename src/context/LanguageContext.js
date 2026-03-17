@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../services/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { getUserSettings } from '../services/firestoreService';
 
 const translations = {
@@ -162,21 +163,30 @@ const LanguageContext = createContext();
 
 export function LanguageProvider({ children }) {
   const [language, setLanguage] = useState('english');
+  const [fontSize, setFontSize] = useState(2); // 1=Small, 2=Medium, 3=Large, 4=X-Large
 
   useEffect(() => {
-    const load = async () => {
-      const user = auth.currentUser;
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (!user) return;
       const settings = await getUserSettings(user.uid);
       if (settings?.language) setLanguage(settings.language);
-    };
-    load();
+      if (settings?.fontSize) setFontSize(settings.fontSize);
+    });
+    return () => unsubscribe();
   }, []);
+
+  // Размер шрифта в rem
+  const fontScale = {
+    1: 0.85,  // Small
+    2: 1.0,   // Medium
+    3: 1.15,  // Large
+    4: 1.3,   // X-Large
+  }[fontSize] || 1.0;
 
   const t = translations[language] || translations.english;
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, fontSize, setFontSize, fontScale }}>
       {children}
     </LanguageContext.Provider>
   );

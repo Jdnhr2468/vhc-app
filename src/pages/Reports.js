@@ -1,13 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box, Grid, Paper, Typography, Button,
   List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Avatar, Stack,
+  ListItemText, Avatar, Stack, Drawer, Divider, IconButton
 } from '@mui/material';
 import {
   Activity, Bell, LayoutGrid, BarChart3, Settings,
   LogOut, ChevronRight, Smartphone, Download,
-  Share2, TrendingUp, Heart, Droplets, Wind
+  Share2, TrendingUp, Heart, Droplets, Wind, X
 } from 'lucide-react';
 import {
   AreaChart, Area,
@@ -20,6 +20,10 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
+import { useLanguage } from '../context/LanguageContext';
+import BioSenseLogo from '../components/BioSenseLogo';
+import { subscribeAlerts, markAlertRead } from '../services/firestoreService';
+
 
 const theme = {
   bg:        '#F8FAFC',
@@ -44,7 +48,86 @@ const menuItems = [
   { label: 'Settings',  icon: <Settings />,    path: '/settings'  },
 ];
 
+function AlertsModal({ open, onClose, alerts, onMarkRead }) {
+  const severityColor = {
+    high:   { bg: '#FEF2F2', text: theme.danger,  border: '#FECACA' },
+    medium: { bg: '#FFFBEB', text: theme.warning, border: '#FDE68A' },
+    low:    { bg: theme.successBg, text: theme.success, border: '#BBF7D0' },
+  };
+
+  return (
+    <Drawer anchor="bottom" open={open} onClose={onClose}
+      PaperProps={{ sx: { borderRadius: '24px 24px 0 0', maxHeight: '80vh', px: 2, pt: 1, pb: 4 } }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+        <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: theme.border }} />
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: theme.textMain }}>Health Alerts</Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>{alerts.filter(a => !a.read).length} unread</Typography>
+        </Box>
+        <IconButton onClick={onClose} sx={{ bgcolor: theme.bg, borderRadius: '12px' }}>
+          <X size={18} color={theme.textSub} />
+        </IconButton>
+      </Box>
+      <Divider sx={{ mb: 2 }} />
+      <Box sx={{ overflowY: 'auto' }}>
+        {alerts.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography sx={{ fontSize: '2rem', mb: 1 }}>✅</Typography>
+            <Typography sx={{ color: theme.textSub, fontWeight: 600 }}>No alerts</Typography>
+          </Box>
+        ) : (
+          alerts.map((alert) => {
+            const s = severityColor[alert.severity] || severityColor.low;
+            return (
+              <Box key={alert.id} sx={{
+                p: 2, mb: 1.5, borderRadius: '16px',
+                bgcolor: alert.read ? theme.bg : s.bg,
+                border: `1px solid ${alert.read ? theme.border : s.border}`,
+                opacity: alert.read ? 0.7 : 1,
+              }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Box sx={{ px: 1, py: 0.2, borderRadius: '8px', bgcolor: s.bg, border: `1px solid ${s.border}` }}>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: s.text, textTransform: 'uppercase' }}>
+                          {alert.severity}
+                        </Typography>
+                      </Box>
+                      {!alert.read && <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />}
+                    </Box>
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain, mb: 0.3 }}>{alert.type}</Typography>
+                    <Typography sx={{ fontSize: '0.78rem', color: theme.textSub, lineHeight: 1.5 }}>{alert.message}</Typography>
+                  </Box>
+                  {!alert.read && (
+                    <Button size="small" onClick={() => onMarkRead(alert.id)} sx={{
+                      ml: 1, flexShrink: 0, fontSize: '0.7rem', textTransform: 'none',
+                      borderRadius: '10px', color: theme.primary, bgcolor: theme.primaryBg,
+                      '&:hover': { bgcolor: '#DBEAFE' }, minWidth: 'auto', px: 1.5,
+                    }}>
+                      Mark read
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+            );
+          })
+        )}
+      </Box>
+    </Drawer>
+  );
+}
+
 function Sidebar({ navigate, location, user }) {
+  const { t } = useLanguage();
+        const menuItems = [
+        { label: t.dashboard, icon: <LayoutGrid />, path: '/dashboard' },
+        { label: t.devices,   icon: <Smartphone />, path: '/devices'   },
+        { label: t.alerts,    icon: <Bell />,        path: '/alerts'    },
+        { label: t.reports,   icon: <BarChart3 />,   path: '/reports'   },
+        { label: t.settings,  icon: <Settings />,    path: '/settings'  },
+      ];
   return (
     <Box sx={{
       width: 250, bgcolor: theme.white,
@@ -55,15 +138,9 @@ function Sidebar({ navigate, location, user }) {
     }}>
 
       
-            {/* ✅ ИЗМЕНЕНО: pb для мобильной навигации */}
-            <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Box sx={{ bgcolor: theme.primary, p: 1, borderRadius: '12px', display: 'flex' }}>
-                      <Activity color="white" size={22} />
-                    </Box>
-                    <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1.1rem' }}>
-                      BioSense
-                    </Typography>
-                  </Box>
+            <Box sx={{ p: 3 }}>
+              <BioSenseLogo variant="sidebar" />
+            </Box>
       
 
       <List sx={{ px: 2, mt: 1, flexGrow: 1 }}>
@@ -104,14 +181,14 @@ function Sidebar({ navigate, location, user }) {
             <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain }}>
               {user?.displayName || user?.email?.split('@')[0] || 'User'}
             </Typography>
-            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>Patient</Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>{t.patient}</Typography>
           </Box>
         </Box>
         <ListItemButton onClick={() => { auth.signOut(); navigate('/login'); }}
           sx={{ borderRadius: '12px', color: theme.textMuted, py: 1,
             '&:hover': { bgcolor: '#FEF2F2', color: theme.danger } }}>
           <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}><LogOut size={18} /></ListItemIcon>
-          <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
+          <ListItemText primary={t.logout} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
         </ListItemButton>
       </Box>
     </Box>
@@ -194,6 +271,7 @@ export default function Reports() {
   const user      = auth.currentUser;
   const reportRef = useRef(null);
 
+
   const [activeTab,    setActiveTab]    = useState('glucose');
   const [downloading,  setDownloading]  = useState(false);
 
@@ -201,6 +279,18 @@ export default function Reports() {
   const avg  = +(data.data.reduce((s, d) => s + d.value, 0) / data.data.length).toFixed(1);
   const min  = Math.min(...data.data.map(d => d.value));
   const max  = Math.max(...data.data.map(d => d.value));
+  const [alerts,     setAlerts]     = useState([]);
+    const [alertsOpen, setAlertsOpen] = useState(false);
+    const [alertCount, setAlertCount] = useState(0);
+    
+    useEffect(() => {
+      if (!user) return;
+      const unsub = subscribeAlerts(user.uid, (data) => {
+        setAlerts(data);
+        setAlertCount(data.filter(a => !a.read).length);
+      });
+      return () => unsub();
+    }, [user]);
 
   const handleDownloadPDF = async () => {
     const element = reportRef.current;
@@ -254,7 +344,7 @@ export default function Reports() {
         }}>
 
       {/* ✅ MobileHeader здесь */}
-        <MobileHeader title="Reports" />
+        <MobileHeader title="Reports"  alertCount={alertCount} onAlertClick={() => setAlertsOpen(true)} />
 
       <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
 
@@ -485,6 +575,12 @@ export default function Reports() {
         </Grid>
       </Box>
       </Box>
+      <AlertsModal
+  open={alertsOpen}
+  onClose={() => setAlertsOpen(false)}
+  alerts={alerts}
+  onMarkRead={(id) => markAlertRead(user.uid, id)}
+/>
       {/* ✅ ДОБАВЛЕНО: нижняя навигация — видна только на телефоне */}
             <BottomNav />
     </Box>

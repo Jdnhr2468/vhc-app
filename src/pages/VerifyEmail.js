@@ -4,6 +4,7 @@ import { Mail, RefreshCw, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../services/firebase';
 import { sendEmailVerification } from 'firebase/auth';
+import BioSenseLogo from '../components/BioSenseLogo';
 
 const theme = {
   bg:        '#F8FAFC',
@@ -81,19 +82,7 @@ export default function VerifyEmail() {
           </Box>
         </Box>
 
-        {/* Логотип */}
-        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1,
-          bgcolor: theme.bg, px: 2, py: 0.8, borderRadius: '20px',
-          border: `1px solid ${theme.border}`, mb: 3 }}>
-          <Box sx={{ bgcolor: theme.primary, p: 0.6, borderRadius: '8px', display: 'flex' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-          </Box>
-          <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '0.95rem' }}>
-            BioSense
-          </Typography>
-        </Box>
+
 
         <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: theme.textMain, mb: 1 }}>
           Verify your email 📬

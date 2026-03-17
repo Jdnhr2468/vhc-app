@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { useState } from 'react';
+import { createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../services/firebase';
+import { auth, db, googleProvider, facebookProvider, appleProvider } from '../services/firebase';
 import {
   Box, Typography, TextField, Button,
-  Alert, InputAdornment, IconButton
+  Alert, InputAdornment, IconButton, Divider
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, UserPlus, Activity, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, UserPlus, Eye, EyeOff } from 'lucide-react';
+import BioSenseLogo from '../components/BioSenseLogo';
+
 
 const theme = {
   bg:        '#F8FAFC',
@@ -39,6 +41,7 @@ export default function Register() {
   const pwStrengthWidth = pwStrength === 'Strong' ? '100%'
     : pwStrength === 'Medium' ? '60%'
     : pwStrength === 'Weak'   ? '25%' : '0%';
+
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -80,10 +83,26 @@ export default function Register() {
     }
   };
 
+  const handleSocialLogin = async (provider) => {
+    setError('');
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid, email: user.email,
+        displayName: user.displayName,
+        createdAt: new Date(), role: 'patient',
+      }, { merge: true });
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Sign in failed. Please try again.');
+    }
+  };
+  
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: theme.bg }}>
 
-      {/* ── ЛЕВАЯ ПАНЕЛЬ ── */}
+      {/* Левая панель */}
       <Box sx={{
         display: { xs: 'none', md: 'flex' },
         flex: 1,
@@ -110,17 +129,14 @@ export default function Register() {
 
         <Box sx={{ position: 'relative', textAlign: 'center', maxWidth: 380 }}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-            <Box sx={{ bgcolor: 'rgba(255,255,255,0.15)', p: 2.5,
-              borderRadius: '24px', backdropFilter: 'blur(10px)' }}>
-              <Activity size={48} color="white" />
-            </Box>
+            <BioSenseLogo variant="icon" />
           </Box>
           <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: 'white',
             letterSpacing: '-0.5px', mb: 2, lineHeight: 1.2 }}>
             Your health journey starts here
           </Typography>
           <Typography sx={{ fontSize: '1rem', color: 'rgba(255,255,255,0.75)', lineHeight: 1.7 }}>
-            Join BioSense and take control of your health with real-time monitoring and personalised insights.
+            Join BioSense and take control of your health with real-time monitoring.
           </Typography>
           <Box sx={{ mt: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {[
@@ -147,18 +163,12 @@ export default function Register() {
         flex: { xs: 1, md: '0 0 480px' },
         display: 'flex', flexDirection: 'column',
         justifyContent: 'center', alignItems: 'center',
-        p: { xs: 3, md: 6 }, bgcolor: theme.white, overflowY: 'auto',
+        p: { xs: 3, md: 3 }, bgcolor: theme.white, overflowY: 'auto',
       }}>
         <Box sx={{ width: '100%', maxWidth: 380 }}>
 
-          <Box sx={{ display: { xs: 'flex', md: 'none' },
-            alignItems: 'center', gap: 1.5, mb: 4, justifyContent: 'center' }}>
-            <Box sx={{ bgcolor: theme.primaryBg, p: 1.2, borderRadius: '14px', display: 'flex' }}>
-              <Activity size={28} color={theme.primary} />
-            </Box>
-            <Typography sx={{ fontWeight: 800, fontSize: '1.3rem', color: theme.textMain }}>
-              BioSense
-            </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
+            <BioSenseLogo variant="splash" iconSize={80} fontSize={30} />
           </Box>
 
           <Typography sx={{ fontSize: '1.8rem', fontWeight: 800, color: theme.textMain,
@@ -252,17 +262,6 @@ export default function Register() {
               }}
             />
 
-            {confirmPassword && confirmPassword !== password && (
-              <Typography sx={{ fontSize: '0.75rem', color: theme.danger, mb: 1.5, ml: 0.5 }}>
-                Passwords do not match
-              </Typography>
-            )}
-            {confirmPassword && confirmPassword === password && (
-              <Typography sx={{ fontSize: '0.75rem', color: theme.success, mb: 1.5, ml: 0.5 }}>
-                ✓ Passwords match
-              </Typography>
-            )}
-
             <Button type="submit" fullWidth disabled={loading}
               endIcon={<UserPlus size={18} />}
               sx={{
@@ -275,6 +274,78 @@ export default function Register() {
               }}>
               {loading ? 'Creating account...' : 'Create Account'}
             </Button>
+
+            {/* Разделитель */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5, mt: 2.5 }}>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: theme.border }} />
+            <Typography sx={{ fontSize: '0.78rem', color: theme.textMuted, fontWeight: 600 }}>or</Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: theme.border }} />
+          </Box>
+
+            {/* Социальные кнопки */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2, mb: 2 }}>
+            <Button fullWidth onClick={() => handleSocialLogin(googleProvider)}
+              sx={{
+                py: 1.3, borderRadius: '14px', textTransform: 'none',
+                fontWeight: 600, fontSize: '0.9rem',
+                bgcolor: theme.white, color: theme.textMain,
+                border: `1px solid ${theme.border}`,
+                '&:hover': { bgcolor: theme.bg },
+                display: 'flex', gap: 1.5,
+              }}>
+              <svg width="18" height="18" viewBox="0 0 48 48">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+              Continue with Google
+            </Button>
+
+            <Button fullWidth onClick={() => handleSocialLogin(facebookProvider)}
+              sx={{
+                py: 1.3, borderRadius: '14px', textTransform: 'none',
+                fontWeight: 600, fontSize: '0.9rem',
+                bgcolor: '#1877F2', color: 'white',
+                '&:hover': { bgcolor: '#166FE5' },
+                display: 'flex', gap: 1.5,
+              }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              Continue with Facebook
+            </Button>
+
+            <Button fullWidth onClick={() => handleSocialLogin(appleProvider)}
+              sx={{
+                py: 1.3, borderRadius: '14px', textTransform: 'none',
+                fontWeight: 600, fontSize: '0.9rem',
+                bgcolor: '#000000', color: 'white',
+                '&:hover': { bgcolor: '#1a1a1a' },
+                display: 'flex', gap: 1.5,
+              }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+              </svg>
+              Continue with Apple
+            </Button>
+          </Box>
+
+          
+
+            {confirmPassword && confirmPassword !== password && (
+              <Typography sx={{ fontSize: '0.75rem', color: theme.danger, mb: 1.5, ml: 0.5 }}>
+                Passwords do not match
+              </Typography>
+            )}
+            {confirmPassword && confirmPassword === password && (
+              <Typography sx={{ fontSize: '0.75rem', color: theme.success, mb: 1.5, ml: 0.5 }}>
+                ✓ Passwords match
+              </Typography>
+            )}
+
+            
+              
 
           </Box>
 

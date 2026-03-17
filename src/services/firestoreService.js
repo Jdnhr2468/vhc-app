@@ -295,3 +295,10 @@ export const deleteDevice = async (uid, deviceId) => {
     return false;
   }
 };
+
+export const subscribeSettings = (uid, callback) => {
+  const ref = doc(db, 'users', uid, 'settings', 'preferences');
+  return onSnapshot(ref, snap => {
+    if (snap.exists()) callback(snap.data());
+  });
+};

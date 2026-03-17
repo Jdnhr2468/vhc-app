@@ -5,22 +5,23 @@ import {
   ListItemIcon, ListItemText, Chip, Button, Drawer, Divider
 } from '@mui/material';
 import {
-  Activity, Heart, Droplets, Wind, Bell,
+  Heart, Droplets, Wind, Bell,
   LayoutGrid, BarChart3, Settings, LogOut,
   ChevronRight, Smartphone, Flame, Zap, PersonStanding, X
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../services/firebase';
-import { addAlert, subscribeAlerts, subscribeDevices, markAlertRead } from '../services/firestoreService';
+import { addAlert, subscribeAlerts, subscribeDevices, markAlertRead, subscribeSettings } from '../services/firestoreService';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
 } from 'recharts';
 import AIChat from './AIChat';
-// ✅ ДОБАВЛЕНО: импорты мобильных компонентов
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
+import BioSenseLogo from '../components/BioSenseLogo';
+
 
 const theme = {
   bg:        '#F8FAFC',
@@ -52,20 +53,122 @@ const INSIGHTS = [
   { emoji: '🏆', text: "Step goal hit 5 days in a row. Almost at 'Steps Master II' badge!" },
 ];
 
-const menuItems = [
-  { label: t.dashboard, icon: <LayoutGrid />, path: '/dashboard' },
-  { label: t.devices,   icon: <Smartphone />, path: '/devices'   },
-  { label: t.alerts,    icon: <Bell />,        path: '/alerts'    },
-  { label: t.reports,   icon: <BarChart3 />,   path: '/reports'   },
-  { label: t.settings,  icon: <Settings />,    path: '/settings'  },
-];
-
 const THRESHOLDS = {
   hr: { min: 50, max: 100,  label: 'Heart Rate',   unit: 'bpm'    },
   ox: { min: 95, max: 100,  label: 'Oxygen Level', unit: '%'      },
   gl: { min: 4.0, max: 7.8, label: 'Glucose',      unit: 'mmol/L' },
 };
 
+// ✅ НОВЫЙ: виджет погоды
+function WeatherWidget({ language }) {
+  const [weather, setWeather]   = useState(null);
+  const [city,    setCity]      = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [denied,  setDenied]    = useState(false);
+
+  const fetchWeather = async (lat, lon) => {
+    try {
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+      );
+      const data = await res.json();
+      setWeather(data.current_weather);
+
+      // ✅ ИЗМЕНЕНО: передаём язык в запрос
+      const langCode = { english: 'en', russian: 'ru', kazakh: 'kk' }[language] || 'en';
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=${langCode}`
+      );
+      const geoData = await geoRes.json();
+      setCity(
+        geoData.address?.city ||
+        geoData.address?.town ||
+        geoData.address?.village ||
+        geoData.address?.county ||
+        'Unknown'
+      );
+    } catch {}
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setLoading(false); return; }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+      ()    => { setDenied(true); setLoading(false); },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+
+    const iv = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => {}
+      );
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(iv);
+  }, [language]); // ✅ ИЗМЕНЕНО: перезапускаем при смене языка
+
+  const getWeatherInfo = (code) => {
+    if (code === 0) return { icon: '☀️', label: 'Clear',  gradient: 'linear-gradient(135deg, #FEF3C7, #FDE68A)' };
+    if (code <= 2)  return { icon: '🌤️', label: 'Partly', gradient: 'linear-gradient(135deg, #DBEAFE, #EFF6FF)' };
+    if (code <= 3)  return { icon: '☁️', label: 'Cloudy', gradient: 'linear-gradient(135deg, #F1F5F9, #E2E8F0)' };
+    if (code <= 67) return { icon: '🌧️', label: 'Rainy',  gradient: 'linear-gradient(135deg, #DBEAFE, #BFDBFE)' };
+    if (code <= 77) return { icon: '❄️', label: 'Snowy',  gradient: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)' };
+    return                 { icon: '⛈️', label: 'Stormy', gradient: 'linear-gradient(135deg, #E0E7FF, #C7D2FE)' };
+  };
+
+  if (loading) return (
+    <Paper elevation={0} sx={{
+      px: 2, py: 1, borderRadius: '16px',
+      border: `1px solid ${theme.border}`,
+      bgcolor: theme.bg, display: 'flex', alignItems: 'center',
+    }}>
+      <Typography sx={{ fontSize: '0.75rem', color: theme.textMuted }}> Loading...</Typography>
+    </Paper>
+  );
+
+  if (denied) return (
+    <Paper elevation={0} onClick={() => window.location.reload()} sx={{
+      px: 2, py: 1, borderRadius: '16px',
+      border: `1px solid ${theme.border}`,
+      bgcolor: theme.bg, display: 'flex', alignItems: 'center',
+      cursor: 'pointer',
+    }}>
+      <Typography sx={{ fontSize: '0.75rem', color: theme.textMuted }}>📍 Allow location</Typography>
+    </Paper>
+  );
+
+  if (!weather) return null;
+
+  const info = getWeatherInfo(weather.weathercode);
+
+  return (
+    <Paper elevation={0} sx={{
+      px: 2, py: 1.2, borderRadius: '16px',
+      background: info.gradient,
+      border: `1px solid rgba(0,0,0,0.06)`,
+      display: 'flex', alignItems: 'center', gap: 1.5,
+      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+    }}>
+      <Typography sx={{ fontSize: '1.4rem', lineHeight: 1 }}>{info.icon}</Typography>
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: theme.textMain, lineHeight: 1 }}>
+            {Math.round(weather.temperature)}°
+          </Typography>
+          <Typography sx={{ fontSize: '0.7rem', color: theme.textSub, fontWeight: 600 }}>C</Typography>
+        </Box>
+        {city && (
+          <Typography sx={{ fontSize: '0.65rem', color: theme.textSub, fontWeight: 600, lineHeight: 1.2 }}>
+            📍 {city}
+          </Typography>
+        )}
+      </Box>
+    </Paper>
+  );
+}
 
 function AlertsModal({ open, onClose, alerts, onMarkRead }) {
   const severityColor = {
@@ -140,9 +243,15 @@ function AlertsModal({ open, onClose, alerts, onMarkRead }) {
 
 function Sidebar({ navigate, location, user, alertCount }) {
   const { t } = useLanguage();
+  const menuItems = [
+    { label: t.dashboard, icon: <LayoutGrid />, path: '/dashboard' },
+    { label: t.devices,   icon: <Smartphone />, path: '/devices'   },
+    { label: t.alerts,    icon: <Bell />,        path: '/alerts'    },
+    { label: t.reports,   icon: <BarChart3 />,   path: '/reports'   },
+    { label: t.settings,  icon: <Settings />,    path: '/settings'  },
+  ];
+
   return (
-    // ✅ БЫЛО: display: 'flex' — показывалось всегда
-    // ✅ СТАЛО: display: { xs: 'none', md: 'flex' } — скрывается на мобильном
     <Box sx={{
       width: 250, bgcolor: theme.white,
       display: { xs: 'none', md: 'flex' },
@@ -150,13 +259,8 @@ function Sidebar({ navigate, location, user, alertCount }) {
       borderRight: `1px solid ${theme.border}`,
       position: 'fixed', height: '100vh', zIndex: 100,
     }}>
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box sx={{ bgcolor: theme.primary, p: 1, borderRadius: '12px', display: 'flex' }}>
-          <Activity color="white" size={22} />
-        </Box>
-        <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1.1rem', letterSpacing: '-0.5px' }}>
-          BioSense
-        </Typography>
+      <Box sx={{ p: 3 }}>
+        <BioSenseLogo variant="sidebar" />
       </Box>
 
       <Box sx={{ px: 3, mb: 1 }}>
@@ -188,13 +292,13 @@ function Sidebar({ navigate, location, user, alertCount }) {
                 </ListItemIcon>
                 <ListItemText primary={item.label}
                   primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: isActive ? 700 : 500 }} />
-                {item.label === 'Alerts' && alertCount > 0 && (
+                {item.label === t.alerts && alertCount > 0 && (
                   <Box sx={{ bgcolor: theme.danger, color: 'white', borderRadius: '10px',
                     px: 1, py: 0.2, fontSize: '0.7rem', fontWeight: 700 }}>
                     {alertCount}
                   </Box>
                 )}
-                {isActive && item.label !== 'Alerts' && <ChevronRight size={15} color={theme.primary} />}
+                {isActive && item.label !== t.alerts && <ChevronRight size={15} color={theme.primary} />}
               </ListItemButton>
             </ListItem>
           );
@@ -221,7 +325,7 @@ function Sidebar({ navigate, location, user, alertCount }) {
           sx={{ borderRadius: '12px', color: theme.textMuted, py: 1,
             '&:hover': { bgcolor: '#FEF2F2', color: theme.danger } }}>
           <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}><LogOut size={18} /></ListItemIcon>
-          <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
+          <ListItemText primary={t.logout} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
         </ListItemButton>
       </Box>
     </Box>
@@ -237,7 +341,6 @@ function BiomarkerCard({ title, value, unit, icon, color, status, statusColor })
 
   return (
     <Paper elevation={0} sx={{
-      // ✅ ДОБАВЛЕНО: p: { xs: 1.5, md: 2.5 } — меньше отступы на мобильном
       p: { xs: 1.5, md: 2.5 }, borderRadius: '24px',
       border: `1px solid ${theme.border}`,
       boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
@@ -258,18 +361,11 @@ function BiomarkerCard({ title, value, unit, icon, color, status, statusColor })
           fontWeight: 700, fontSize: '0.7rem', height: 24,
         }} />
       </Box>
-      <Typography sx={{
-        // ✅ ДОБАВЛЕНО: fontSize адаптивный
-        fontSize: { xs: '0.72rem', md: '0.8rem' }, color: theme.textSub, fontWeight: 600, mb: 0.5
-      }}>
+      <Typography sx={{ fontSize: { xs: '0.72rem', md: '0.8rem' }, color: theme.textSub, fontWeight: 600, mb: 0.5 }}>
         {title}
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5 }}>
-        <Typography sx={{
-          // ✅ ДОБАВЛЕНО: fontSize адаптивный — меньше на мобильном
-          fontSize: { xs: '1.3rem', md: '1.7rem' },
-          fontWeight: 800, color: theme.textMain, letterSpacing: '-1px'
-        }}>
+        <Typography sx={{ fontSize: { xs: '1.3rem', md: '1.7rem' }, fontWeight: 800, color: theme.textMain, letterSpacing: '-1px' }}>
           {value}
         </Typography>
         <Typography sx={{ fontSize: '0.75rem', color: theme.textMuted, fontWeight: 600 }}>{unit}</Typography>
@@ -282,7 +378,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const user     = auth.currentUser;
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [vitals, setVitals] = useState({
     hr: 72, bp: '120/80', ox: 98,
@@ -292,8 +388,12 @@ export default function Dashboard() {
   const [insight]    = useState(() => INSIGHTS[Math.floor(Math.random() * INSIGHTS.length)]);
   const [alertCount, setAlertCount] = useState(0);
   const [connectedDevices, setConnectedDevices] = useState([]);
+  const [visibleCards, setVisibleCards] = useState({
+    heartRate: true, bp: true, oxygen: true,
+    glucose: true, steps: true, calories: true,
+  });
+
   const lastAlertTime = useRef({});
-  
   const [alerts,     setAlerts]     = useState([]);
   const [alertsOpen, setAlertsOpen] = useState(false);
 
@@ -316,6 +416,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!user) return;
+    const unsub = subscribeSettings(user.uid, (data) => {
+      if (data?.visibleCards) {
+        setVisibleCards(prev => ({ ...prev, ...data.visibleCards }));
+      }
+    });
+    return () => unsub();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
     const iv = setInterval(async () => {
       setVitals(prev => {
         const next = {
@@ -326,36 +436,34 @@ export default function Dashboard() {
           steps: prev.steps + Math.floor(Math.random() * 10),
           cal:   prev.cal   + Math.floor(Math.random() * 3),
         };
-
         const now = Date.now();
         const COOLDOWN = 5 * 60 * 1000;
-
         if (next.hr > THRESHOLDS.hr.max) {
           if (!lastAlertTime.current.hr_high || now - lastAlertTime.current.hr_high > COOLDOWN) {
             lastAlertTime.current.hr_high = now;
-            addAlert(user.uid, { type: 'High Heart Rate Detected', message: `Heart rate reached ${next.hr} bpm. Consider resting and monitoring.`, severity: next.hr > 110 ? 'high' : 'medium', read: false });
+            addAlert(user.uid, { type: 'High Heart Rate Detected', message: `Heart rate reached ${next.hr} bpm.`, severity: next.hr > 110 ? 'high' : 'medium', read: false });
           }
         } else if (next.hr < THRESHOLDS.hr.min) {
           if (!lastAlertTime.current.hr_low || now - lastAlertTime.current.hr_low > COOLDOWN) {
             lastAlertTime.current.hr_low = now;
-            addAlert(user.uid, { type: 'Low Heart Rate Detected', message: `Heart rate dropped to ${next.hr} bpm. Consider consulting your doctor.`, severity: 'high', read: false });
+            addAlert(user.uid, { type: 'Low Heart Rate Detected', message: `Heart rate dropped to ${next.hr} bpm.`, severity: 'high', read: false });
           }
         }
         if (next.ox < THRESHOLDS.ox.min) {
           if (!lastAlertTime.current.ox_low || now - lastAlertTime.current.ox_low > COOLDOWN) {
             lastAlertTime.current.ox_low = now;
-            addAlert(user.uid, { type: 'Low Oxygen Level', message: `SpO2 dropped to ${next.ox}%. Try deep breathing exercises.`, severity: next.ox < 93 ? 'high' : 'medium', read: false });
+            addAlert(user.uid, { type: 'Low Oxygen Level', message: `SpO2 dropped to ${next.ox}%.`, severity: next.ox < 93 ? 'high' : 'medium', read: false });
           }
         }
         if (next.gl > THRESHOLDS.gl.max) {
           if (!lastAlertTime.current.gl_high || now - lastAlertTime.current.gl_high > COOLDOWN) {
             lastAlertTime.current.gl_high = now;
-            addAlert(user.uid, { type: 'High Glucose Level', message: `Blood glucose reached ${next.gl} mmol/L. Monitor your intake.`, severity: next.gl > 8.5 ? 'high' : 'medium', read: false });
+            addAlert(user.uid, { type: 'High Glucose Level', message: `Blood glucose reached ${next.gl} mmol/L.`, severity: next.gl > 8.5 ? 'high' : 'medium', read: false });
           }
         } else if (next.gl < THRESHOLDS.gl.min) {
           if (!lastAlertTime.current.gl_low || now - lastAlertTime.current.gl_low > COOLDOWN) {
             lastAlertTime.current.gl_low = now;
-            addAlert(user.uid, { type: 'Low Glucose Level', message: `Blood glucose dropped to ${next.gl} mmol/L. Consider having a snack.`, severity: 'high', read: false });
+            addAlert(user.uid, { type: 'Low Glucose Level', message: `Blood glucose dropped to ${next.gl} mmol/L.`, severity: 'high', read: false });
           }
         }
         return next;
@@ -365,191 +473,184 @@ export default function Dashboard() {
   }, [user]);
 
   const biomarkers = [
-    { title: t.heartRate,      value: vitals.hr,                     unit: 'bpm',      icon: <Heart />,          color: '#EF4444', status: vitals.hr > 100 ? t.high : vitals.hr < 50 ? t.low : t.normal,   statusColor: vitals.hr > 100 || vitals.hr < 50 ? 'red' : 'green' },
-    { title: t.bloodPressure,  value: vitals.bp,                     unit: 'mmHg',     icon: <Zap />,            color: '#F59E0B', status: t.normal,   statusColor: 'green' },
-    { title: t.oxygenLevel,    value: vitals.ox,                     unit: '%',        icon: <Wind />,           color: '#3B82F6', status: vitals.ox < 95 ? t.low : t.optimal,  statusColor: vitals.ox < 95 ? 'red' : 'green' },
-    { title: t.glucose,         value: vitals.gl,                     unit: 'mmol/L',   icon: <Droplets />,       color: '#8B5CF6', status: vitals.gl > 7.8 ? t.high : vitals.gl < 4 ? t.low : t.normal, statusColor: vitals.gl > 7.8 || vitals.gl < 4 ? 'red' : 'green' },
-    { title: t.stepsToday,     value: vitals.steps.toLocaleString(), unit: '/ 10,000', icon: <PersonStanding />, color: '#10B981', status: t.active,   statusColor: 'green' },
-    { title: t.caloriesBurned, value: vitals.cal,                    unit: 'kcal',     icon: <Flame />,          color: '#F59E0B', status: t.onTrack, statusColor: 'green' },
-  ];
+    { key: 'heartRate',     title: t.heartRate,      value: vitals.hr,                     unit: 'bpm',      icon: <Heart />,          color: '#EF4444', status: vitals.hr > 100 ? t.high : vitals.hr < 50 ? t.low : t.normal,   statusColor: vitals.hr > 100 || vitals.hr < 50 ? 'red' : 'green' },
+    { key: 'bp',            title: t.bloodPressure,  value: vitals.bp,                     unit: 'mmHg',     icon: <Zap />,            color: '#F59E0B', status: t.normal,   statusColor: 'green' },
+    { key: 'oxygen',        title: t.oxygenLevel,    value: vitals.ox,                     unit: '%',        icon: <Wind />,           color: '#3B82F6', status: vitals.ox < 95 ? t.low : t.optimal,  statusColor: vitals.ox < 95 ? 'red' : 'green' },
+    { key: 'glucose',       title: t.glucose,        value: vitals.gl,                     unit: 'mmol/L',   icon: <Droplets />,       color: '#8B5CF6', status: vitals.gl > 7.8 ? t.high : vitals.gl < 4 ? t.low : t.normal, statusColor: vitals.gl > 7.8 || vitals.gl < 4 ? 'red' : 'green' },
+    { key: 'steps',         title: t.stepsToday,     value: vitals.steps.toLocaleString(), unit: '/ 10,000', icon: <PersonStanding />, color: '#10B981', status: t.active,   statusColor: 'green' },
+    { key: 'calories',      title: t.caloriesBurned, value: vitals.cal,                    unit: 'kcal',     icon: <Flame />,          color: '#F59E0B', status: t.onTrack,  statusColor: 'green' },
+  ].filter(b => visibleCards[b.key] !== false);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: theme.bg }}>
       <Sidebar navigate={navigate} location={location} user={user} alertCount={alertCount} />
-      {/* Весь мобильный контент в одной колонке */}
+
       <Box sx={{ flexGrow: 1, ml: { md: '250px' }, width: { xs: '100%', md: 'calc(100% - 250px)' }, display: 'flex', flexDirection: 'column' }}>
+        <MobileHeader title="Dashboard" alertCount={alertCount} onAlertClick={() => setAlertsOpen(true)} />
 
-      {/* ✅ ДОБАВЛЕНО: мобильный хедер — виден только на телефоне */}
-      <MobileHeader title="Dashboard" alertCount={alertCount} onAlertClick={()=> setAlertsOpen(true)}/>
+        <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 } }}>
 
+          {/* Десктоп топбар */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box>
+              <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>
+                {t.dashboard}
+              </Typography>
+              <Typography sx={{ color: theme.textSub, mt: 0.3 }}>
+                {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* ✅ НОВОЕ: погода в топбаре */}
+              <WeatherWidget language={language} />
 
-      {/* ✅ ИЗМЕНЕНО: добавлен pb: { xs: 10, md: 4 } — отступ снизу для нижней навигации */}
-        <Box sx={{ p: { xs: 2, md: 4 }, pb: { xs: 10, md: 4 }, overflowY: 'hidden' }}>
+              <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center', gap: 1.5,
+                bgcolor: theme.white, border: `1px solid ${theme.border}`,
+                borderRadius: '20px', px: 2, py: 0.8 }}>
+                {connectedDevices.length > 0 ? connectedDevices.map(d => (
+                  <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.success }} />
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: theme.textSub }}>
+                      {d.name}
+                    </Typography>
+                  </Box>
+                )) : (
+                  <Typography sx={{ fontSize: '0.72rem', color: theme.textMuted }}>No devices</Typography>
+                )}
+              </Box>
 
-        {/* Топбар — скрываем на мобильном т.к. есть MobileHeader */}
-        {/* ✅ ДОБАВЛЕНО: display: { xs: 'none', md: 'flex' } */}
-        <Box sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: theme.textMain, letterSpacing: '-0.5px' }}>
-              {t.dashboard}
-            </Typography>
-            <Typography sx={{ color: theme.textSub, mt: 0.3 }}>
-              {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]} 
-            </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: theme.successBg,
+                px: 2, py: 0.8, borderRadius: '20px' }}>
+                <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.success,
+                  animation: 'pulse 1.5s infinite',
+                  '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } }
+                }} />
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>{t.live}</Typography>
+              </Box>
+
+              <IconButton onClick={() => navigate('/alerts')}
+                sx={{ bgcolor: theme.white, border: `1px solid ${theme.border}`, p: 1.2, position: 'relative' }}>
+                <Bell size={20} color={alertCount > 0 ? theme.danger : theme.textSub} />
+                {alertCount > 0 && (
+                  <Box sx={{ position: 'absolute', top: 4, right: 4, width: 16, height: 16,
+                    borderRadius: '50%', bgcolor: theme.danger,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography sx={{ fontSize: '0.6rem', color: 'white', fontWeight: 700 }}>
+                      {alertCount > 9 ? '9+' : alertCount}
+                    </Typography>
+                  </Box>
+                )}
+              </IconButton>
+            </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center', gap: 1.5,
-              bgcolor: theme.white, border: `1px solid ${theme.border}`,
-              borderRadius: '20px', px: 2, py: 0.8 }}>
-              {connectedDevices.map(d => (
-                <Box key={d.name} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                  <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.success }} />
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: theme.textSub }}>
-                    {d.name}
-                  </Typography>
-                </Box>
-              ))}
+          {/* Мобильное приветствие */}
+          <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>
+                {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]} 👋
+              </Typography>
+              {/* ✅ НОВОЕ: погода на мобильном */}
+              <WeatherWidget language={language} />
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: theme.successBg,
-              px: 2, py: 0.8, borderRadius: '20px' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
               <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.success,
                 animation: 'pulse 1.5s infinite',
                 '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } }
               }} />
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>{t.live}</Typography>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>{t.liveMonitoring}</Typography>
             </Box>
-            <IconButton onClick={() => navigate('/alerts')}
-              sx={{ bgcolor: theme.white, border: `1px solid ${theme.border}`, p: 1.2, position: 'relative' }}>
-              <Bell size={20} color={alertCount > 0 ? theme.danger : theme.textSub} />
-              {alertCount > 0 && (
-                <Box sx={{ position: 'absolute', top: 4, right: 4, width: 16, height: 16,
-                  borderRadius: '50%', bgcolor: theme.danger,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Typography sx={{ fontSize: '0.6rem', color: 'white', fontWeight: 700 }}>
-                    {alertCount > 9 ? '9+' : alertCount}
-                  </Typography>
-                </Box>
-              )}
-            </IconButton>
           </Box>
-        </Box>
 
-        {/* ✅ ДОБАВЛЕНО: приветствие только на мобильном */}
-        <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 2 }}>
-          <Typography sx={{ fontSize: '1.2rem', fontWeight: 800, color: theme.textMain }}>
-            {t.welcomeBack}, {user?.displayName || user?.email?.split('@')[0]} 👋
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-            <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.success,
-              animation: 'pulse 1.5s infinite',
-              '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.4 } }
-            }} />
-            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: theme.success }}>{t.liveMonitoring}</Typography>
-          </Box>
-        </Box>
+          {/* ✅ ИЗМЕНЕНО: новая сетка — биомаркеры шире, insight и activity справа */}
+          <Grid container spacing={2}>
 
-        {/* Главная сетка */}
-        <Grid container spacing={2}>
+            {/* Биомаркеры — занимают больше места */}
+            <Grid item xs={12} md={8}>
+              <Grid container spacing={2}>
+                {biomarkers.map(b => (
+                  <Grid item xs={6} sm={4} md={4} key={b.key}>
+                    <BiomarkerCard {...b} />
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
 
-          {/* Левая часть */}
-          <Grid item xs={12} md={9}>
-            <Grid container spacing={2}>
+            {/* ✅ НОВОЕ: правая колонка — Insight + Weekly Activity */}
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
 
-              {biomarkers.map(b => (
-                // ✅ ИЗМЕНЕНО: xs={6} — 2 колонки на мобильном (было xs={6} sm={4} md={4})
-                <Grid item xs={6} sm={4} md={4} key={b.title}>
-                  <BiomarkerCard {...b} />
-                </Grid>
-              ))}
-
-              {/* Today's Insight */}
-              <Grid item xs={12}>
+                {/* Today's Insight — маленькое окошко */}
                 <Paper elevation={0} sx={{
-                  p: { xs: 2, md: 2.5 }, borderRadius: '24px',
+                  p: 2, borderRadius: '20px',
                   background: 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)',
                   border: '1px solid #BFDBFE',
-                  // ✅ ИЗМЕНЕНО: на мобильном колонка, на десктопе строка
-                  display: 'flex',
-                  flexDirection: { xs: 'column', md: 'row' },
-                  alignItems: { xs: 'flex-start', md: 'center' },
-                  gap: 2,
                 }}>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />
-                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: theme.primary,
-                        textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        {t.todayInsight}
-                      </Typography>
-                    </Box>
-                    <Typography sx={{ fontSize: '0.88rem', fontWeight: 500, color: theme.textMain, lineHeight: 1.7 }}>
-                      {insight.emoji} {insight.text}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: theme.primary,
+                      textTransform: 'uppercase', letterSpacing: '1px' }}>
+                      {t.todayInsight}
                     </Typography>
                   </Box>
-                  <Button onClick={() => navigate('/reports')}
+                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 500, color: theme.textMain, lineHeight: 1.6, mb: 1.5 }}>
+                    {insight.emoji} {insight.text}
+                  </Typography>
+                  <Button onClick={() => navigate('/reports')} fullWidth size="small"
                     sx={{
-                      // ✅ ДОБАВЛЕНО: fullWidth на мобильном
-                      width: { xs: '100%', md: 'auto' },
-                      flexShrink: 0, borderRadius: '12px', textTransform: 'none',
+                      borderRadius: '10px', textTransform: 'none',
                       fontWeight: 700, bgcolor: theme.primary, color: 'white',
-                      fontSize: '0.82rem', px: 3, py: 1,
+                      fontSize: '0.78rem',
                       '&:hover': { bgcolor: '#1D4ED8' },
                     }}>
-                    View Reports →
+                    {t.viewReports}
                   </Button>
                 </Paper>
-              </Grid>
 
+                {/* Weekly Activity — шире */}
+                <Paper elevation={0} sx={{
+                  p: 2.5, borderRadius: '20px', flexGrow: 1,
+                  border: `1px solid ${theme.border}`,
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+                }}>
+                  <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 0.5 }}>
+                    {t.weeklyActivity}
+                  </Typography>
+                  <Typography sx={{ fontSize: '0.8rem', color: theme.textSub, mb: 2 }}>
+                    {t.stepsWeek}
+                  </Typography>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={history} barSize={14}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                      <XAxis dataKey="day" tick={{ fontSize: 10, fill: theme.textMuted }}
+                        axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: theme.textMuted }}
+                        axisLine={false} tickLine={false} width={35} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 12, border: `1px solid ${theme.border}`, fontSize: 12 }}
+                        formatter={v => [`${v.toLocaleString()} steps`, 'Steps']}
+                      />
+                      <Bar dataKey="steps" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Paper>
+
+              </Box>
             </Grid>
-          </Grid>
 
-          {/* Правая часть — Weekly Activity */}
-          <Grid item xs={12} md={3}>
-            <Paper elevation={0} sx={{
-              p: 3, borderRadius: '24px',
-              border: `1px solid ${theme.border}`,
-              boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-            }}>
-              <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 0.5 }}>
-                {t.weeklyActivity}
-              </Typography>
-              <Typography sx={{ fontSize: '0.8rem', color: theme.textSub, mb: 2 }}>
-                {t.stepsWeek}
-              </Typography>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={history} barSize={18}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: theme.textMuted }}
-                    axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: theme.textMuted }}
-                    axisLine={false} tickLine={false} width={35} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: `1px solid ${theme.border}`,
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.08)', fontSize: 12 }}
-                    formatter={v => [`${v.toLocaleString()} steps`, 'Steps']}
-                  />
-                  <Bar dataKey="steps" fill="#3B82F6" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Paper>
           </Grid>
+        </Box>
+      </Box>
 
-        </Grid>
-      </Box>
-      </Box>
       <AlertsModal
-  open={alertsOpen}
-  onClose={() => setAlertsOpen(false)}
-  alerts={alerts}
-  onMarkRead={(id) => markAlertRead(user.uid, id)}
-/>
-      {/* AI Chat */}
+        open={alertsOpen}
+        onClose={() => setAlertsOpen(false)}
+        alerts={alerts}
+        onMarkRead={(id) => markAlertRead(user.uid, id)}
+      />
+
       <AIChat vitals={vitals} />
-
-      {/* ✅ ДОБАВЛЕНО: нижняя навигация — видна только на телефоне */}
       <BottomNav />
-
     </Box>
   );
 }

@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { updateUserProfile } from '../services/firestoreService';
+import BioSenseLogo from '../components/BioSenseLogo';
 
 const theme = {
   bg:        '#F8FAFC',
@@ -110,20 +111,8 @@ export default function Onboarding() {
       <Box sx={{ width: '100%', maxWidth: 560 }}>
 
         {/* Логотип */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5,
-            bgcolor: theme.white, px: 3, py: 1.5, borderRadius: '20px',
-            border: `1px solid ${theme.border}`,
-            boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-            <Box sx={{ bgcolor: theme.primary, p: 0.8, borderRadius: '10px', display: 'flex' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-              </svg>
-            </Box>
-            <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1.1rem' }}>
-              BioSense
-            </Typography>
-          </Box>
+        <Box sx={{ p: 3 }}>
+          <BioSenseLogo variant="sidebar" />
         </Box>
 
         {/* Прогресс */}

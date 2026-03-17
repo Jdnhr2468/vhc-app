@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from './services/firebase';
 import { Box, CircularProgress, Snackbar, Alert, Button } from '@mui/material';
-import { LanguageProvider } from './context/LanguageContext';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { useLanguage, LanguageProvider } from './context/LanguageContext';
 
 import Login       from "./pages/Login";
 import Register    from "./pages/Register";
@@ -15,6 +16,7 @@ import Devices     from "./pages/Devices";
 import Settings    from "./pages/Settings";
 import Onboarding  from './pages/Onboarding';
 import VerifyEmail from './pages/VerifyEmail';
+import SplashScreen from './pages/SplashScreen';
 
 
 const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 минут
@@ -30,6 +32,7 @@ function ProtectedRoute({ user, loading, children }) {
   }
   return user ? children : <Navigate to="/login" replace />;
 }
+
 
 function IdleHandler({ user }) {
   const navigate        = useNavigate();
@@ -88,6 +91,15 @@ function IdleHandler({ user }) {
   );
 }
 
+function ThemedApp({ children }) {
+  const { fontScale } = useLanguage();
+  const theme = createTheme({
+    typography: {
+      fontSize: 14 * fontScale,
+    },
+  });
+  return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
+}
 
 export default function App() {
   const [user,    setUser]    = useState(null);
@@ -104,6 +116,7 @@ export default function App() {
   return (
     <Router>
       <LanguageProvider>
+        <ThemedApp>
       <IdleHandler user={user} />
       <Routes>
         {/* Публичные */}
@@ -111,6 +124,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Защищённые */}
+        <Route path="/" element={<SplashScreen />} />
         <Route path="/onboarding"   element={<ProtectedRoute user={user} loading={loading}><Onboarding /></ProtectedRoute>} />
         <Route path="/dashboard"    element={<ProtectedRoute user={user} loading={loading}><Dashboard /></ProtectedRoute>} />
         <Route path="/devices"      element={<ProtectedRoute user={user} loading={loading}><Devices /></ProtectedRoute>} />
@@ -120,9 +134,11 @@ export default function App() {
         <Route path="/settings"     element={<ProtectedRoute user={user} loading={loading}><Settings /></ProtectedRoute>} />
         <Route path="/verify-email" element={<VerifyEmail />} />
 
+
         {/* Fallback */}
-        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </ThemedApp>
       </LanguageProvider>
     </Router>
   );

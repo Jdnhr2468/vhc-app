@@ -3,6 +3,7 @@ import { Box, Typography, IconButton, Avatar } from '@mui/material';
 import { Bell, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../../services/firebase';
+import BioSenseLogo from '../BioSenseLogo';
 
 const theme = {
   white:    '#FFFFFF',
@@ -29,14 +30,9 @@ export default function MobileHeader({ title, alertCount = 0, onAlertClick }) {
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
     }}>
       {/* Лого */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Box sx={{ bgcolor: theme.primary, p: 0.8, borderRadius: '10px', display: 'flex' }}>
-          <Activity color="white" size={18} />
-        </Box>
-        <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1rem' }}>
-          BioSense
-        </Typography>
-      </Box>
+      <Box sx={{ p: 3 }}>
+  <BioSenseLogo variant="mobile" />
+</Box>
 
       {/* Заголовок страницы */}
       <Typography sx={{ fontWeight: 700, color: theme.textMain, fontSize: '0.95rem' }}>

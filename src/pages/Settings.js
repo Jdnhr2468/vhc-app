@@ -2,19 +2,21 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Avatar,
   List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Switch, Slider, CircularProgress, Divider
+  ListItemText, Switch, Slider, CircularProgress, Drawer, Divider, IconButton
 } from '@mui/material';
 import {
-  Activity, Bell, LayoutGrid, BarChart3, Settings,
+  Bell, LayoutGrid, BarChart3, Settings,
   LogOut, ChevronRight, Smartphone, Heart, Droplets, Wind, Zap,
-  PersonStanding, Flame, Check
+  PersonStanding, Flame, Check, X
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../services/firebase';
-import { getUserSettings, saveUserSettings } from '../services/firestoreService';
+import { getUserSettings, saveUserSettings, subscribeAlerts, markAlertRead } from '../services/firestoreService';
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
+import BioSenseLogo from '../components/BioSenseLogo';
+
 
 const theme = {
   bg:        '#F2F2F7',
@@ -32,21 +34,13 @@ const theme = {
   separator: '#E5E5EA',
 };
 
-const menuItems = [
-  { label: 'Dashboard', icon: <LayoutGrid />, path: '/dashboard' },
-  { label: 'Devices',   icon: <Smartphone />, path: '/devices'   },
-  { label: 'Alerts',    icon: <Bell />,        path: '/alerts'    },
-  { label: 'Reports',   icon: <BarChart3 />,   path: '/reports'   },
-  { label: 'Settings',  icon: <Settings />,    path: '/settings'  },
-];
-
 const dashboardCards = [
   { key: 'heartRate', label: 'Heart Rate',      icon: <Heart size={16} />,          color: '#EF4444' },
-  { key: 'bp',        label: 'Blood Pressure',  icon: <Zap size={16} />,            color: '#F59E0B' },
-  { key: 'oxygen',    label: 'Oxygen Level',    icon: <Wind size={16} />,           color: '#3B82F6' },
+  { key: 'bloodPressure', label: 'Blood Pressure',  icon: <Zap size={16} />,            color: '#F59E0B' },
+  { key: 'oxygenLevel', label: 'Oxygen Level',    icon: <Wind size={16} />,           color: '#3B82F6' },
   { key: 'glucose',   label: 'Glucose',         icon: <Droplets size={16} />,       color: '#8B5CF6' },
-  { key: 'steps',     label: 'Steps Today',     icon: <PersonStanding size={16} />, color: '#10B981' },
-  { key: 'calories',  label: 'Calories Burned', icon: <Flame size={16} />,          color: '#F59E0B' },
+  { key: 'stepsToday', label: 'Steps Today',     icon: <PersonStanding size={16} />, color: '#10B981' },
+  { key: 'caloriesBurned', label: 'Calories Burned', icon: <Flame size={16} />,          color: '#F59E0B' },
 ];
 
 
@@ -68,15 +62,6 @@ const DEFAULT_SETTINGS = {
   },
 };
 
-const settingsTabs = [
-  { key: 'language',      label: 'Language',        emoji: '🌐' },
-  { key: 'units',         label: 'Units',           emoji: '📏' },
-  { key: 'accessibility', label: 'Accessibility',   emoji: '♿' },
-  { key: 'notifications', label: 'Notifications',   emoji: '🔔' },
-  { key: 'thresholds',    label: 'Alert Thresholds',emoji: '⚠️' },
-  { key: 'dashboard',     label: 'Dashboard Cards', emoji: '📊' },
-  { key: 'about',         label: 'About',           emoji: 'ℹ️' },
-];
 
 
 function AppleSection({ label, children, mb = 3 }) {
@@ -102,7 +87,6 @@ function AppleSection({ label, children, mb = 3 }) {
     </Box>
   );
 }
-
 
 function AppleRow({ icon, iconBg, label, desc, right, onClick, divider = true, danger = false }) {
   return (
@@ -148,7 +132,85 @@ function AppleRow({ icon, iconBg, label, desc, right, onClick, divider = true, d
   );
 }
 
+function AlertsModal({ open, onClose, alerts, onMarkRead }) {
+  const severityColor = {
+    high:   { bg: '#FEF2F2', text: theme.danger,  border: '#FECACA' },
+    medium: { bg: '#FFFBEB', text: theme.warning, border: '#FDE68A' },
+    low:    { bg: theme.successBg, text: theme.success, border: '#BBF7D0' },
+  };
+
+  return (
+    <Drawer anchor="bottom" open={open} onClose={onClose}
+      PaperProps={{ sx: { borderRadius: '24px 24px 0 0', maxHeight: '80vh', px: 2, pt: 1, pb: 4 } }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>
+        <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: theme.border }} />
+      </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box>
+          <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: theme.textMain }}>Health Alerts</Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>{alerts.filter(a => !a.read).length} unread</Typography>
+        </Box>
+        <IconButton onClick={onClose} sx={{ bgcolor: theme.bg, borderRadius: '12px' }}>
+          <X size={18} color={theme.textSub} />
+        </IconButton>
+      </Box>
+      <Divider sx={{ mb: 2 }} />
+      <Box sx={{ overflowY: 'auto' }}>
+        {alerts.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography sx={{ fontSize: '2rem', mb: 1 }}>✅</Typography>
+            <Typography sx={{ color: theme.textSub, fontWeight: 600 }}>No alerts</Typography>
+          </Box>
+        ) : (
+          alerts.map((alert) => {
+            const s = severityColor[alert.severity] || severityColor.low;
+            return (
+              <Box key={alert.id} sx={{
+                p: 2, mb: 1.5, borderRadius: '16px',
+                bgcolor: alert.read ? theme.bg : s.bg,
+                border: `1px solid ${alert.read ? theme.border : s.border}`,
+                opacity: alert.read ? 0.7 : 1,
+              }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Box sx={{ px: 1, py: 0.2, borderRadius: '8px', bgcolor: s.bg, border: `1px solid ${s.border}` }}>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: s.text, textTransform: 'uppercase' }}>
+                          {alert.severity}
+                        </Typography>
+                      </Box>
+                      {!alert.read && <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />}
+                    </Box>
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain, mb: 0.3 }}>{alert.type}</Typography>
+                    <Typography sx={{ fontSize: '0.78rem', color: theme.textSub, lineHeight: 1.5 }}>{alert.message}</Typography>
+                  </Box>
+                  {!alert.read && (
+                    <Button size="small" onClick={() => onMarkRead(alert.id)} sx={{
+                      ml: 1, flexShrink: 0, fontSize: '0.7rem', textTransform: 'none',
+                      borderRadius: '10px', color: theme.primary, bgcolor: theme.primaryBg,
+                      '&:hover': { bgcolor: '#DBEAFE' }, minWidth: 'auto', px: 1.5,
+                    }}>
+                      Mark read
+                    </Button>
+                  )}
+                </Box>
+              </Box>
+            );
+          })
+        )}
+      </Box>
+    </Drawer>
+  );
+}
 function Sidebar({ navigate, location, user }) {
+  const { t } = useLanguage();
+  const menuItems = [
+    { label: t.dashboard, icon: <LayoutGrid />, path: '/dashboard' },
+    { label: t.devices,   icon: <Smartphone />, path: '/devices'   },
+    { label: t.alerts,    icon: <Bell />,        path: '/alerts'    },
+    { label: t.reports,   icon: <BarChart3 />,   path: '/reports'   },
+    { label: t.settings,  icon: <Settings />,    path: '/settings'  },
+  ];
   return (
     <Box sx={{
       width: 250, bgcolor: theme.white,
@@ -157,13 +219,8 @@ function Sidebar({ navigate, location, user }) {
       borderRight: `1px solid ${theme.border}`,
       position: 'fixed', height: '100vh', zIndex: 100,
     }}>
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box sx={{ bgcolor: theme.primary, p: 1, borderRadius: '12px', display: 'flex' }}>
-          <Activity color="white" size={22} />
-        </Box>
-        <Typography sx={{ fontWeight: 800, color: theme.textMain, fontSize: '1.1rem' }}>
-          BioSense
-        </Typography>
+      <Box sx={{ p: 3 }}>
+        <BioSenseLogo variant="sidebar" />
       </Box>
       <List sx={{ px: 2, mt: 1, flexGrow: 1 }}>
         {menuItems.map(item => {
@@ -200,14 +257,14 @@ function Sidebar({ navigate, location, user }) {
             <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain }}>
               {user?.displayName || user?.email?.split('@')[0] || 'User'}
             </Typography>
-            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>Patient</Typography>
+            <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>{t.patient}</Typography>
           </Box>
         </Box>
         <ListItemButton onClick={() => { auth.signOut(); navigate('/login'); }}
           sx={{ borderRadius: '12px', color: theme.textMuted, py: 1,
             '&:hover': { bgcolor: '#FEF2F2', color: theme.danger } }}>
           <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}><LogOut size={18} /></ListItemIcon>
-          <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
+          <ListItemText primary={t.logout} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: 600 }} />
         </ListItemButton>
       </Box>
     </Box>
@@ -218,13 +275,14 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const user     = auth.currentUser;
-  const { setLanguage: setGlobalLanguage } = useLanguage();
 
-  const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState(false);
-  const [saved,   setSaved]   = useState(false);
+  // ✅ useLanguage вверху, ДО useState
+  const { t, setLanguage: setGlobalLanguage, setFontSize: setGlobalFontSize } = useLanguage();
 
-  const [language,     setLanguage]     = useState(DEFAULT_SETTINGS.language);
+  const [loading,      setLoading]      = useState(true);
+  const [saving,       setSaving]       = useState(false);
+  const [saved,        setSaved]        = useState(false);
+  const [languageLocal, setLanguageLocal] = useState(DEFAULT_SETTINGS.language);
   const [units,        setUnits]        = useState(DEFAULT_SETTINGS.units);
   const [fontSize,     setFontSize]     = useState(DEFAULT_SETTINGS.fontSize);
   const [notifTime,    setNotifTime]    = useState(DEFAULT_SETTINGS.notifTime);
@@ -232,19 +290,43 @@ export default function SettingsPage() {
   const [thresholds,   setThresholds]   = useState(DEFAULT_SETTINGS.thresholds);
   const [visibleCards, setVisibleCards] = useState(DEFAULT_SETTINGS.visibleCards);
   const [activeTab,    setActiveTab]    = useState('language');
+  const [alerts,     setAlerts]     = useState([]);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [alertCount, setAlertCount] = useState(0);
+
+
+  // ✅ settingsTabs внутри компонента после useLanguage
+  const settingsTabs = [
+    { key: 'language',      label: t.language,      emoji: '' },
+    { key: 'units',         label: t.units,         emoji: '' },
+    { key: 'accessibility', label: t.accessibility, emoji: '' },
+    { key: 'notifications', label: t.notifications, emoji: '' },
+    { key: 'thresholds',    label: t.thresholds,    emoji: '' },
+    { key: 'dashboard',     label: t.dashboardCards,emoji: '' },
+    { key: 'about',         label: t.about,         emoji: 'ℹ️' },
+  ];
+
+useEffect(() => {
+  if (!user) return;
+  const unsub = subscribeAlerts(user.uid, (data) => {
+    setAlerts(data);
+    setAlertCount(data.filter(a => !a.read).length);
+  });
+  return () => unsub();
+}, [user]);
 
   useEffect(() => {
     const load = async () => {
       if (!user) return;
       const data = await getUserSettings(user.uid);
       if (data) {
-        setLanguage(    data.language     || DEFAULT_SETTINGS.language);
-        setUnits(       data.units        || DEFAULT_SETTINGS.units);
-        setFontSize(    data.fontSize     || DEFAULT_SETTINGS.fontSize);
-        setNotifTime(   data.notifTime    || DEFAULT_SETTINGS.notifTime);
-        setNotifTypes(  data.notifTypes   || DEFAULT_SETTINGS.notifTypes);
-        setThresholds(  data.thresholds   || DEFAULT_SETTINGS.thresholds);
-        setVisibleCards(data.visibleCards || DEFAULT_SETTINGS.visibleCards);
+        setLanguageLocal(data.language     || DEFAULT_SETTINGS.language);
+        setUnits(        data.units        || DEFAULT_SETTINGS.units);
+        setFontSize(     data.fontSize     || DEFAULT_SETTINGS.fontSize);
+        setNotifTime(    data.notifTime    || DEFAULT_SETTINGS.notifTime);
+        setNotifTypes(   data.notifTypes   || DEFAULT_SETTINGS.notifTypes);
+        setThresholds(   data.thresholds   || DEFAULT_SETTINGS.thresholds);
+        setVisibleCards( data.visibleCards || DEFAULT_SETTINGS.visibleCards);
       }
       setLoading(false);
     };
@@ -253,19 +335,21 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    setGlobalLanguage(language);
+    // ✅ Обновляем глобальный язык и шрифт
+    setGlobalLanguage(languageLocal);
+    setGlobalFontSize(fontSize);
     const ok = await saveUserSettings(user.uid, {
-      language, units, fontSize, notifTime, notifTypes, thresholds, visibleCards,
+      language: languageLocal, units, fontSize, notifTime, notifTypes, thresholds, visibleCards,
     });
     setSaving(false);
     if (ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
   };
 
   const toggleCard = (key) => {
-    const active = Object.values(visibleCards).filter(Boolean).length;
-    if (visibleCards[key] && active <= 2) return;
-    setVisibleCards(p => ({ ...p, [key]: !p[key] }));
-  };
+  const active = Object.values(visibleCards).filter(Boolean).length;
+  if (visibleCards[key] && active <= 3) return;
+  setVisibleCards(p => ({ ...p, [key]: !p[key] }));
+};
 
   if (loading) return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -278,19 +362,13 @@ export default function SettingsPage() {
       <Sidebar navigate={navigate} location={location} user={user} />
 
       <Box sx={{ flexGrow: 1, ml: { md: '250px' }, width: '100%', display: 'flex', flexDirection: 'column' }}>
-        <MobileHeader title="Settings" />
+        <MobileHeader title="Settings" alertCount={alertCount} onAlertClick={() => setAlertsOpen(true)} />
 
-        {/* Десктоп: двухколоночный лейаут */}
+        {/* Десктоп */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, flexGrow: 1 }}>
-
-          {/* Левый навигатор */}
-          <Box sx={{
-            width: 220, flexShrink: 0,
-            borderRight: `1px solid ${theme.border}`,
-            pt: 4, px: 2, bgcolor: theme.bg,
-          }}>
+          <Box sx={{ width: 220, flexShrink: 0, borderRight: `1px solid ${theme.border}`, pt: 4, px: 2, bgcolor: theme.bg }}>
             <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: theme.textMain, px: 1, mb: 2 }}>
-              Settings
+              {t.settings}
             </Typography>
             {settingsTabs.map(tab => (
               <Box key={tab.key} onClick={() => setActiveTab(tab.key)} sx={{
@@ -299,24 +377,23 @@ export default function SettingsPage() {
                 bgcolor: activeTab === tab.key ? theme.white : 'transparent',
                 border: activeTab === tab.key ? `1px solid ${theme.border}` : '1px solid transparent',
                 color: activeTab === tab.key ? theme.primary : theme.textSub,
-                fontWeight: activeTab === tab.key ? 700 : 500,
-                fontSize: '0.88rem',
                 transition: 'all 0.15s',
                 '&:hover': { bgcolor: theme.white, color: theme.textMain },
               }}>
+              
                 <Typography sx={{ fontSize: '1rem' }}>{tab.emoji}</Typography>
-                <Typography sx={{ fontSize: '0.88rem', fontWeight: 'inherit', color: 'inherit' }}>
+                <Typography sx={{ fontSize: '0.88rem', fontWeight: activeTab === tab.key ? 700 : 500, color: 'inherit' }}>
                   {tab.label}
                 </Typography>
               </Box>
             ))}
           </Box>
 
-          {/* Правый контент */}
+
           <Box sx={{ flex: 1, p: 4, overflowY: 'auto' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: theme.textMain }}>
-                {settingsTabs.find(t => t.key === activeTab)?.label}
+                {settingsTabs.find(tab => tab.key === activeTab)?.label}
               </Typography>
               <Button onClick={handleSave} disabled={saving}
                 startIcon={saving ? <CircularProgress size={16} color="inherit" /> : saved ? <Check size={16} /> : null}
@@ -325,12 +402,14 @@ export default function SettingsPage() {
                   borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 3,
                   '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
                 }}>
-                {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
+                {saving ? t.saving : saved ? t.saved : t.saveChanges}
               </Button>
             </Box>
             <TabContent
-              activeTab={activeTab} language={language} setLanguage={setLanguage}
-              units={units} setUnits={setUnits} fontSize={fontSize} setFontSize={setFontSize}
+              activeTab={activeTab}
+              language={languageLocal} setLanguage={setLanguageLocal}
+              units={units} setUnits={setUnits}
+              fontSize={fontSize} setFontSize={setFontSize}
               notifTime={notifTime} setNotifTime={setNotifTime}
               notifTypes={notifTypes} setNotifTypes={setNotifTypes}
               thresholds={thresholds} setThresholds={setThresholds}
@@ -339,31 +418,28 @@ export default function SettingsPage() {
           </Box>
         </Box>
 
-        {/* Мобильный лейаут */}
+        {/* Мобильный */}
         <Box sx={{ display: { xs: 'block', md: 'none' }, p: 2, pb: 10 }}>
-
-          {/* Горизонтальный скролл табов */}
           <Box sx={{
-            display: 'flex', gap: 1, overflowX: 'auto', pb: 1.5, mb: 2,
-            '&::-webkit-scrollbar': { display: 'none' },
-          }}>
-            {settingsTabs.map(tab => (
-              <Box key={tab.key} onClick={() => setActiveTab(tab.key)} sx={{
-                flexShrink: 0, px: 2, py: 0.8, borderRadius: '20px', cursor: 'pointer',
-                bgcolor: activeTab === tab.key ? theme.primary : theme.white,
-                color:   activeTab === tab.key ? 'white' : theme.textSub,
-                border:  `1px solid ${activeTab === tab.key ? theme.primary : theme.border}`,
-                fontSize: '0.8rem', fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: 0.5,
-                transition: 'all 0.15s',
-              }}>
-                <span>{tab.emoji}</span>
-                <span>{tab.label}</span>
-              </Box>
-            ))}
-          </Box>
+  display: 'flex', gap: 1, overflowX: 'auto', pb: 1.5, mb: 2,
+  '&::-webkit-scrollbar': { display: 'none' },
+}}>
+  {settingsTabs.map(tab => (
+    <Box key={tab.key} onClick={() => setActiveTab(tab.key)} sx={{
+      flexShrink: 0, px: 2, py: 0.8, borderRadius: '20px', cursor: 'pointer',
+      bgcolor: activeTab === tab.key ? theme.primary : theme.white,
+      color:   activeTab === tab.key ? 'white' : theme.textSub,
+      border:  `1px solid ${activeTab === tab.key ? theme.primary : theme.border}`,
+      fontSize: '0.8rem', fontWeight: 600,
+      display: 'flex', alignItems: 'center', gap: 0.5,
+    }}>
+      <span>{tab.emoji}</span>
+      <span>{tab.label}</span>
+    </Box>
+  ))}
+</Box>
 
-          {/* Кнопка Save */}
+
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
             <Button onClick={handleSave} disabled={saving} size="small"
               startIcon={saving ? <CircularProgress size={14} color="inherit" /> : saved ? <Check size={14} /> : null}
@@ -372,13 +448,15 @@ export default function SettingsPage() {
                 borderRadius: '12px', textTransform: 'none', fontWeight: 700,
                 '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
               }}>
-              {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
+              {saving ? t.saving : saved ? t.saved : t.saveChanges}
             </Button>
           </Box>
 
           <TabContent
-            activeTab={activeTab} language={language} setLanguage={setLanguage}
-            units={units} setUnits={setUnits} fontSize={fontSize} setFontSize={setFontSize}
+            activeTab={activeTab}
+            language={languageLocal} setLanguage={setLanguageLocal}
+            units={units} setUnits={setUnits}
+            fontSize={fontSize} setFontSize={setFontSize}
             notifTime={notifTime} setNotifTime={setNotifTime}
             notifTypes={notifTypes} setNotifTypes={setNotifTypes}
             thresholds={thresholds} setThresholds={setThresholds}
@@ -386,20 +464,25 @@ export default function SettingsPage() {
           />
         </Box>
       </Box>
-
+      <AlertsModal
+  open={alertsOpen}
+  onClose={() => setAlertsOpen(false)}
+  alerts={alerts}
+  onMarkRead={(id) => markAlertRead(user.uid, id)}
+/>
       <BottomNav />
     </Box>
   );
 }
 
-// Вынес контент вкладок в отдельный компонент
+
 function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSize, setFontSize,
   notifTime, setNotifTime, notifTypes, setNotifTypes, thresholds, setThresholds,
   visibleCards, toggleCard }) {
 
   return (
     <>
-      {/* LANGUAGE */}
+
       {activeTab === 'language' && (
         <AppleSection label="Language">
           {[
@@ -408,14 +491,15 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
             { key: 'kazakh',  label: 'Kazakh',  flag: '🇰🇿' },
           ].map((lang, i, arr) => (
             <AppleRow key={lang.key} label={`${lang.flag}  ${lang.label}`}
-              divider={i < arr.length - 1} onClick={() => setLanguage(lang.key)}
+              divider={i < arr.length - 1}
+              onClick={() => setLanguage(lang.key)}
               right={language === lang.key ? <Check size={18} color={theme.primary} /> : null}
             />
           ))}
         </AppleSection>
       )}
 
-      {/* UNITS */}
+
       {activeTab === 'units' && (
         <AppleSection label="Units of Measurement">
           <Box sx={{ px: 2, py: 1.5 }}>
@@ -452,7 +536,7 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
         </AppleSection>
       )}
 
-      {/* ACCESSIBILITY */}
+
       {activeTab === 'accessibility' && (
         <AppleSection label="Accessibility">
           <Box sx={{ px: 2, py: 1.5 }}>
@@ -484,7 +568,7 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
         </AppleSection>
       )}
 
-      {/* NOTIFICATIONS */}
+
       {activeTab === 'notifications' && (
         <>
           <AppleSection label="Notification Time">
@@ -493,10 +577,10 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
               { key: 'afternoon', label: 'Afternoon', emoji: '☀️', desc: '2:00 PM' },
               { key: 'evening',   label: 'Evening',   emoji: '🌙', desc: '8:00 PM' },
               { key: 'realtime',  label: 'Real-time', emoji: '⚡', desc: 'Instant'  },
-            ].map((t, i, arr) => (
-              <AppleRow key={t.key} label={`${t.emoji}  ${t.label}`} desc={t.desc}
-                divider={i < arr.length - 1} onClick={() => setNotifTime(t.key)}
-                right={notifTime === t.key ? <Check size={18} color={theme.primary} /> : null}
+            ].map((item, i, arr) => (
+              <AppleRow key={item.key} label={`${item.emoji}  ${item.label}`} desc={item.desc}
+                divider={i < arr.length - 1} onClick={() => setNotifTime(item.key)}
+                right={notifTime === item.key ? <Check size={18} color={theme.primary} /> : null}
               />
             ))}
           </AppleSection>
@@ -518,7 +602,7 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
         </>
       )}
 
-      {/* THRESHOLDS */}
+
       {activeTab === 'thresholds' && (
         <AppleSection label="Alert Thresholds">
           <Box sx={{ px: 2, py: 1.5 }}>
@@ -553,7 +637,7 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
         </AppleSection>
       )}
 
-      {/* DASHBOARD CARDS */}
+
       {activeTab === 'dashboard' && (
         <AppleSection label="Dashboard Cards">
           <Box sx={{ px: 2, py: 1.5 }}>
@@ -581,13 +665,13 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
               </Box>
             ))}
             <Typography sx={{ fontSize: '0.72rem', color: theme.textMuted, mt: 1.5 }}>
-              {Object.values(visibleCards).filter(Boolean).length} of {dashboardCards.length} cards visible
-            </Typography>
+  {dashboardCards.filter(card => visibleCards[card.key]).length} of {dashboardCards.length} cards visible
+</Typography>
           </Box>
         </AppleSection>
       )}
 
-      {/* ABOUT */}
+
       {activeTab === 'about' && (
         <>
           <AppleSection label="About">
