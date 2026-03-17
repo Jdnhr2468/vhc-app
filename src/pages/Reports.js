@@ -40,13 +40,7 @@ const theme = {
   danger:    '#EF4444',
 };
 
-const menuItems = [
-  { label: 'Dashboard', icon: <LayoutGrid />, path: '/dashboard' },
-  { label: 'Devices',   icon: <Smartphone />, path: '/devices'   },
-  { label: 'Alerts',    icon: <Bell />,        path: '/alerts'    },
-  { label: 'Reports',   icon: <BarChart3 />,   path: '/reports'   },
-  { label: 'Settings',  icon: <Settings />,    path: '/settings'  },
-];
+
 
 function AlertsModal({ open, onClose, alerts, onMarkRead }) {
   const severityColor = {
