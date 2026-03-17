@@ -439,11 +439,6 @@ export default function Dashboard() {
     if (!user) return;
     const iv = setInterval(async () => {
       setVitals(prev => {
-        // Сохраняем snapshot каждые 5 минут
-  if (Date.now() - lastSnapshotTime.current > 5 * 60 * 1000) {
-    lastSnapshotTime.current = Date.now();
-   saveBiomarkerSnapshot(user.uid, next);
-  }
         const next = {
           ...prev,
           hr:    Math.max(45, Math.min(115, prev.hr + Math.floor(Math.random() * 8) - 4)),
@@ -452,6 +447,11 @@ export default function Dashboard() {
           steps: prev.steps + Math.floor(Math.random() * 10),
           cal:   prev.cal   + Math.floor(Math.random() * 3),
         };
+        // Сохраняем snapshot каждые 5 минут
+  if (Date.now() - lastSnapshotTime.current > 5 * 60 * 1000) {
+    lastSnapshotTime.current = Date.now();
+   saveBiomarkerSnapshot(user.uid, next);
+  }
         const now = Date.now();
         const COOLDOWN = 5 * 60 * 1000;
         if (next.hr > THRESHOLDS.hr.max) {
