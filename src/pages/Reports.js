@@ -5,7 +5,7 @@ import {
   ListItemText, Avatar, Stack, Drawer, Divider, IconButton
 } from '@mui/material';
 import {
-  Activity, Bell, LayoutGrid, BarChart3, Settings,
+  Bell, LayoutGrid, BarChart3, Settings,
   LogOut, ChevronRight, Smartphone, Download,
   Share2, TrendingUp, Heart, Droplets, Wind, X
 } from 'lucide-react';

@@ -6,7 +6,7 @@ import {
   Alert, InputAdornment, IconButton
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, LogIn, Activity, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import BioSenseLogo from '../components/BioSenseLogo';
 
 
@@ -47,7 +47,7 @@ const handleForgotPassword = async () => {
 
   const handleGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
+    await signInWithPopup(auth, googleProvider);
     // Создаём профиль если новый пользователь
     navigate('/dashboard');
   } catch (err) {
@@ -57,7 +57,7 @@ const handleForgotPassword = async () => {
 
 const handleFacebook = async () => {
   try {
-    const result = await signInWithPopup(auth, facebookProvider);
+    await signInWithPopup(auth, facebookProvider);
     navigate('/dashboard');
   } catch (err) {
     setError('Facebook sign in failed. Please try again.');

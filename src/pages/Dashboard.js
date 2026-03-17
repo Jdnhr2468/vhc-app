@@ -108,7 +108,8 @@ function WeatherWidget({ language }) {
     }, 10 * 60 * 1000);
 
     return () => clearInterval(iv);
-  }, [language]); // ✅ ИЗМЕНЕНО: перезапускаем при смене языка
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [language]); 
 
   const getWeatherInfo = (code) => {
     if (code === 0) return { icon: '☀️', label: 'Clear',  gradient: 'linear-gradient(135deg, #FEF3C7, #FDE68A)' };

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Typography, Button, Alert } from '@mui/material';
 import { Mail, RefreshCw, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../services/firebase';
 import { sendEmailVerification } from 'firebase/auth';
-import BioSenseLogo from '../components/BioSenseLogo';
+
 
 const theme = {
   bg:        '#F8FAFC',

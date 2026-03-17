@@ -46,6 +46,7 @@ const theme = {
 };
 
 
+
 // Те же цели что и в Onboarding
 const GOALS = [
   { key: 'weightLoss',  label: 'Weight Loss',     emoji: '🏃', desc: 'Lose weight & burn fat'          },
