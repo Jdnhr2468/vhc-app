@@ -302,3 +302,51 @@ export const subscribeSettings = (uid, callback) => {
     if (snap.exists()) callback(snap.data());
   });
 };
+
+export const saveBiomarkerSnapshot = async (uid, vitals) => {
+  try {
+    const ref = collection(db, 'users', uid, 'biomarkerHistory');
+    await addDoc(ref, {
+      hr:        vitals.hr,
+      ox:        vitals.ox,
+      gl:        vitals.gl,
+      bp:        vitals.bp,
+      steps:     vitals.steps,
+      cal:       vitals.cal,
+      timestamp: serverTimestamp(),
+    });
+  } catch (err) {
+    console.error('saveBiomarkerSnapshot error:', err);
+  }
+};
+
+export const get30DaySummary = async (uid) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const ref = collection(db, 'users', uid, 'biomarkerHistory');
+    const q = query(ref, 
+      where('timestamp', '>=', thirtyDaysAgo),
+      orderBy('timestamp', 'desc')
+    );
+    const snap = await getDocs(q);
+    const docs = snap.docs.map(d => d.data());
+    
+    if (docs.length === 0) return null;
+    
+    const avg = (key) => +(docs.reduce((s, d) => s + (d[key] || 0), 0) / docs.length).toFixed(1);
+    
+    return {
+      hr:    avg('hr'),
+      ox:    avg('ox'),
+      gl:    avg('gl'),
+      steps: Math.round(avg('steps')),
+      cal:   Math.round(avg('cal')),
+      count: docs.length,
+    };
+  } catch (err) {
+    console.error('get30DaySummary error:', err);
+    return null;
+  }
+};

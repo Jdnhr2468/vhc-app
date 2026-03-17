@@ -20,7 +20,7 @@ import {
 } from 'firebase/auth';
 import { auth,storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getUserProfile, updateUserProfile, subscribeAlerts, markAlertRead } from '../services/firestoreService';
+import { getUserProfile, updateUserProfile, subscribeAlerts, markAlertRead, get30DaySummary } from '../services/firestoreService';
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
@@ -245,7 +245,17 @@ export default function Profile() {
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
   const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [summary30, setSummary30] = useState(null);
   
+  useEffect(() => {
+  const load = async () => {
+    if (!user) return;
+    const s = await get30DaySummary(user.uid);
+    if (s) setSummary30(s);
+  };
+  load();
+}, [user]);
+
   useEffect(() => {
     if (!user) return;
     const unsub = subscribeAlerts(user.uid, (data) => {
@@ -584,23 +594,28 @@ export default function Profile() {
 
               {/* 30-Day Summary */}
               <Paper elevation={0} sx={{ p: 3, borderRadius: '24px', border: `1px solid ${theme.border}` }}>
-                <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 2 }}>
-                  30-Day Summary
-                </Typography>
-                {[
-                  { label: 'Avg Heart Rate', value: '73 bpm',     color: theme.danger  },
-                  { label: 'Avg Glucose',    value: '5.4 mmol/L', color: '#8B5CF6'     },
-                  { label: 'Avg Sleep',      value: '7.1 hrs',    color: theme.primary },
-                  { label: 'Avg Steps',      value: '8,120',      color: theme.success },
-                ].map(s => (
-                  <Box key={s.label} sx={{ display: 'flex', justifyContent: 'space-between',
-                    alignItems: 'center', py: 1, borderBottom: `1px solid ${theme.border}`,
-                    '&:last-child': { borderBottom: 0 } }}>
-                    <Typography sx={{ fontSize: '0.82rem', color: theme.textSub }}>{s.label}</Typography>
-                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: s.color }}>{s.value}</Typography>
-                  </Box>
-                ))}
-              </Paper>
+  <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 2 }}>
+    30-Day Summary
+    {summary30 && (
+      <Typography component="span" sx={{ fontSize: '0.72rem', color: theme.textMuted, ml: 1 }}>
+        ({summary30.count} readings)
+      </Typography>
+    )}
+  </Typography>
+  {[
+    { label: 'Avg Heart Rate', value: summary30 ? `${summary30.hr} bpm`     : '73 bpm',     color: theme.danger  },
+    { label: 'Avg Glucose',    value: summary30 ? `${summary30.gl} mmol/L`  : '5.4 mmol/L', color: '#8B5CF6'     },
+    { label: 'Avg Oxygen',     value: summary30 ? `${summary30.ox}%`        : '98%',        color: theme.primary },
+    { label: 'Avg Steps',      value: summary30 ? summary30.steps.toLocaleString() : '8,120', color: theme.success },
+  ].map(s => (
+    <Box key={s.label} sx={{ display: 'flex', justifyContent: 'space-between',
+      alignItems: 'center', py: 1, borderBottom: `1px solid ${theme.border}`,
+      '&:last-child': { borderBottom: 0 } }}>
+      <Typography sx={{ fontSize: '0.82rem', color: theme.textSub }}>{s.label}</Typography>
+      <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: s.color }}>{s.value}</Typography>
+    </Box>
+  ))}
+</Paper>
 
             </Box>
           </Grid>

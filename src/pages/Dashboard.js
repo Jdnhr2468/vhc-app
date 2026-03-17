@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../services/firebase';
-import { addAlert, subscribeAlerts, subscribeDevices, markAlertRead, subscribeSettings } from '../services/firestoreService';
+import { addAlert, subscribeAlerts, subscribeDevices, markAlertRead, subscribeSettings, saveBiomarkerSnapshot } from '../services/firestoreService';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
@@ -404,6 +404,7 @@ export default function Dashboard() {
   const lastAlertTime = useRef({});
   const [alerts,     setAlerts]     = useState([]);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const lastSnapshotTime = useRef(0);
 
   useEffect(() => {
     if (!user) return;
@@ -438,6 +439,11 @@ export default function Dashboard() {
     if (!user) return;
     const iv = setInterval(async () => {
       setVitals(prev => {
+        // Сохраняем snapshot каждые 5 минут
+  if (Date.now() - lastSnapshotTime.current > 5 * 60 * 1000) {
+    lastSnapshotTime.current = Date.now();
+   saveBiomarkerSnapshot(user.uid, next);
+  }
         const next = {
           ...prev,
           hr:    Math.max(45, Math.min(115, prev.hr + Math.floor(Math.random() * 8) - 4)),

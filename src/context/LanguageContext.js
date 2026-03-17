@@ -53,6 +53,7 @@ const translations = {
     thresholds:     'Alert Thresholds',
     dashboardCards: 'Dashboard Cards',
     about:          'About',
+    dailySummary: 'Daily Health Summary',
   },
   russian: {
     dashboard:      'Панель здоровья',
@@ -104,6 +105,7 @@ const translations = {
     thresholds:     'Пороги',
     dashboardCards: 'Карточки',
     about:          'О приложении',
+    dailySummary: 'Ежедневная сводка',
   },
   kazakh: {
     dashboard:      'Денсаулық панелі',
@@ -155,6 +157,7 @@ const translations = {
     thresholds:     'Шектер',
     dashboardCards: 'Карточкалар',
     about:          'Қолданба туралы',
+    dailySummary: 'Күнделікті қорытынды',
   },
 };
 
