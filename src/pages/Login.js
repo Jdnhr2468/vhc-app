@@ -67,20 +67,12 @@ const handleForgotPassword = async () => {
   const handleSocialLogin = async (provider) => {
   setError('');
   try {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // На мобильном используем redirect
-      await signInWithRedirect(auth, provider);
+    const result = await signInWithPopup(auth, provider);
+    const isNewUser = result._tokenResponse?.isNewUser;
+    if (isNewUser) {
+      navigate('/onboarding');
     } else {
-      // На десктопе используем popup
-      const result = await signInWithPopup(auth, provider);
-      const isNewUser = result._tokenResponse?.isNewUser;
-      if (isNewUser) {
-        navigate('/onboarding');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     }
   } catch (err) {
     setError('Sign in failed. Please try again.');

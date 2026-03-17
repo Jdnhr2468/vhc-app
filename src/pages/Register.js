@@ -119,8 +119,6 @@ export default function Register() {
       displayName: user.displayName,
       createdAt: new Date(), role: 'patient',
     }, { merge: true });
-    
-    // ✅ Новый пользователь → онбординг, существующий → дашборд
     const isNewUser = result._tokenResponse?.isNewUser;
     if (isNewUser) {
       navigate('/onboarding');
