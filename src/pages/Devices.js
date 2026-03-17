@@ -181,10 +181,10 @@ function Sidebar({ navigate, location, user }) {
 
 function getDeviceInfo(name) {
   const n = (name || '').toLowerCase();
-  if (n.includes('fitbit'))  return { type: 'Fitness Tracker', color: '#3B82F6', icon: <Watch size={24} />,     metrics: [t.heartRate, t.steps, t.sleep, t.calories] };
-  if (n.includes('oura'))    return { type: 'Smart Ring',      color: '#8B5CF6', icon: <Activity size={24} />,  metrics: [t.hrv, t.sleepScore, t.spO2] };
-  if (n.includes('apple'))   return { type: 'Smart Watch',     color: '#EF4444', icon: <Watch size={24} />,     metrics: [t.heartRate, t.ecg, t.steps] };
-  if (n.includes('garmin'))  return { type: 'Sport Watch',     color: '#06B6D4', icon: <Watch size={24} />,     metrics: [t.heartRate, t.vO2Max, t.gPS] };
+  if (n.includes('fitbit'))  return { type: 'Fitness Tracker', color: '#3B82F6', icon: <Watch size={24} />,     metrics: ['Heart Rate', 'Steps', 'Sleep', 'Calories'] };
+  if (n.includes('oura'))    return { type: 'Smart Ring',      color: '#8B5CF6', icon: <Activity size={24} />,  metrics: ['HRV', 'Sleep Score', 'SpO2'] };
+  if (n.includes('apple'))   return { type: 'Smart Watch',     color: '#EF4444', icon: <Watch size={24} />,     metrics: ['Heart Rate', 'ECG', 'Steps'] };
+  if (n.includes('garmin'))  return { type: 'Sport Watch',     color: '#06B6D4', icon: <Watch size={24} />,     metrics: ['Heart Rate', 'VO2 Max', 'GPS'] };
   if (n.includes('scale') || n.includes('withings') || n.includes('weight'))
                              return { type: 'Smart Scale',     color: '#F59E0B', icon: <Scale size={24} />,     metrics: ['Weight', 'BMI', 'Body Fat'] };
   if (n.includes('libre') || n.includes('glucose'))

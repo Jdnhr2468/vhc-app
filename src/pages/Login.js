@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup,sendPasswordResetEmail  } from 'firebase/auth';
-import { auth, googleProvider, facebookProvider  } from '../services/firebase';
+import { auth, googleProvider, facebookProvider, appleProvider  } from '../services/firebase';
 import {
   Box, Typography, TextField, Button,
   Alert, InputAdornment, IconButton
