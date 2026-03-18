@@ -81,34 +81,33 @@ const handleForgotPassword = async () => {
 };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-const role = userDoc.data()?.role || 'patient';
-if (role === 'admin') {
-  navigate('/admin');
-} else {
-  navigate('/dashboard');
-}
-      const user = userCredential.user;
+  e.preventDefault();
+  setError('');
+  setLoading(true);
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-      // Проверяем верифицирован ли email
-      if (!user.emailVerified) {
-        await auth.signOut();
-        setError('Please verify your email before logging in. Check your inbox.');
-        return;
-      }
-
-      navigate('/dashboard');
-    } catch (err) {
-      setError('Invalid email or password. Please try again.');
-    } finally {
-      setLoading(false);
+    if (!user.emailVerified) {
+      await auth.signOut();
+      setError('Please verify your email before logging in. Check your inbox.');
+      return;
     }
-  };
+
+    // Проверяем роль
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    const role = userDoc.data()?.role || 'patient';
+    if (role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
+  } catch (err) {
+    setError('Invalid email or password. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
   
 
   return (

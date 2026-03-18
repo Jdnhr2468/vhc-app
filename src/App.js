@@ -131,46 +131,44 @@ export default function App() {
   }, []);
 
   return (
-    <Router>
-      <LanguageProvider>
-        <ThemedApp>
-          <IdleHandler user={user} />
-          <Routes>
-            {/* Публичные */}
-            // ✅ СТАЛО:
-<Route path="/login" element={
-  !user ? <Login /> :
-  userRole === null ? (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-      <CircularProgress />
-    </Box>
-  ) :
-  <Navigate to={userRole === 'admin' ? '/admin' : '/dashboard'} />
-} />
-            <Route path="/register"    element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
+  <Router>
+    <LanguageProvider>
+      <ThemedApp>
+        <IdleHandler user={user} />
+        <Routes>
+          <Route path="/" element={<SplashScreen />} />
 
-            {/* Admin */}
-            <Route path="/admin" element={
-              <AdminRoute user={user} userRole={userRole} loading={loading}>
-                <Admin />
-              </AdminRoute>
-            } />
+          <Route path="/login" element={
+            !user ? <Login /> :
+            userRole === null ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+                <CircularProgress />
+              </Box>
+            ) :
+            <Navigate to={userRole === 'admin' ? '/admin' : '/dashboard'} />
+          } />
 
-            {/* Защищённые */}
-            <Route path="/onboarding" element={<ProtectedRoute user={user} loading={loading}><Onboarding /></ProtectedRoute>} />
-            <Route path="/dashboard"  element={<ProtectedRoute user={user} loading={loading}><Dashboard /></ProtectedRoute>} />
-            <Route path="/devices"    element={<ProtectedRoute user={user} loading={loading}><Devices /></ProtectedRoute>} />
-            <Route path="/alerts"     element={<ProtectedRoute user={user} loading={loading}><Alerts /></ProtectedRoute>} />
-            <Route path="/reports"    element={<ProtectedRoute user={user} loading={loading}><Reports /></ProtectedRoute>} />
-            <Route path="/profile"    element={<ProtectedRoute user={user} loading={loading}><Profile /></ProtectedRoute>} />
-            <Route path="/settings"   element={<ProtectedRoute user={user} loading={loading}><Settings /></ProtectedRoute>} />
+          <Route path="/register"     element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </ThemedApp>
-      </LanguageProvider>
-    </Router>
-  );
+          <Route path="/admin" element={
+            <AdminRoute user={user} userRole={userRole} loading={loading}>
+              <Admin />
+            </AdminRoute>
+          } />
+
+          <Route path="/onboarding" element={<ProtectedRoute user={user} loading={loading}><Onboarding /></ProtectedRoute>} />
+          <Route path="/dashboard"  element={<ProtectedRoute user={user} loading={loading}><Dashboard /></ProtectedRoute>} />
+          <Route path="/devices"    element={<ProtectedRoute user={user} loading={loading}><Devices /></ProtectedRoute>} />
+          <Route path="/alerts"     element={<ProtectedRoute user={user} loading={loading}><Alerts /></ProtectedRoute>} />
+          <Route path="/reports"    element={<ProtectedRoute user={user} loading={loading}><Reports /></ProtectedRoute>} />
+          <Route path="/profile"    element={<ProtectedRoute user={user} loading={loading}><Profile /></ProtectedRoute>} />
+          <Route path="/settings"   element={<ProtectedRoute user={user} loading={loading}><Settings /></ProtectedRoute>} />
+
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </ThemedApp>
+    </LanguageProvider>
+  </Router>
+);
 }
