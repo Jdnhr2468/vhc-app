@@ -22,7 +22,7 @@ import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
 import BioSenseLogo from '../components/BioSenseLogo';
-import { subscribeAlerts, markAlertRead } from '../services/firestoreService';
+import { subscribeAlerts, markAlertRead, markAllAlertsRead } from '../services/firestoreService';
 
 const theme = {
   bg:        '#F8FAFC',
@@ -41,12 +41,25 @@ const theme = {
 
 
 
-function AlertsModal({ open, onClose, alerts, onMarkRead }) {
+function AlertsModal({ open, onClose, alerts, onMarkRead, onMarkAllRead }) {
   const severityColor = {
     high:   { bg: '#FEF2F2', text: theme.danger,  border: '#FECACA' },
     medium: { bg: '#FFFBEB', text: theme.warning, border: '#FDE68A' },
     low:    { bg: theme.successBg, text: theme.success, border: '#BBF7D0' },
   };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60)   return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const unreadCount = alerts.filter(a => !a.read).length;
 
   return (
     <Drawer anchor="bottom" open={open} onClose={onClose}
@@ -57,11 +70,24 @@ function AlertsModal({ open, onClose, alerts, onMarkRead }) {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: theme.textMain }}>Health Alerts</Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>{alerts.filter(a => !a.read).length} unread</Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>{unreadCount} unread</Typography>
         </Box>
-        <IconButton onClick={onClose} sx={{ bgcolor: theme.bg, borderRadius: '12px' }}>
-          <X size={18} color={theme.textSub} />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* ✅ Кнопка Mark All Read */}
+          {unreadCount > 0 && (
+            <Button size="small" onClick={onMarkAllRead}
+              sx={{
+                fontSize: '0.72rem', textTransform: 'none', fontWeight: 600,
+                borderRadius: '10px', color: theme.primary, bgcolor: theme.primaryBg,
+                '&:hover': { bgcolor: '#DBEAFE' },
+              }}>
+              Mark all read
+            </Button>
+          )}
+          <IconButton onClick={onClose} sx={{ bgcolor: theme.bg, borderRadius: '12px' }}>
+            <X size={18} color={theme.textSub} />
+          </IconButton>
+        </Box>
       </Box>
       <Divider sx={{ mb: 2 }} />
       <Box sx={{ overflowY: 'auto' }}>
@@ -70,41 +96,51 @@ function AlertsModal({ open, onClose, alerts, onMarkRead }) {
             <Typography sx={{ fontSize: '2rem', mb: 1 }}>✅</Typography>
             <Typography sx={{ color: theme.textSub, fontWeight: 600 }}>No alerts</Typography>
           </Box>
-        ) : alerts.map((alert) => {
-          const s = severityColor[alert.severity] || severityColor.low;
-          return (
-            <Box key={alert.id} sx={{
-              p: 2, mb: 1.5, borderRadius: '16px',
-              bgcolor: alert.read ? theme.bg : s.bg,
-              border: `1px solid ${alert.read ? theme.border : s.border}`,
-              opacity: alert.read ? 0.7 : 1,
-            }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Box sx={{ flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                    <Box sx={{ px: 1, py: 0.2, borderRadius: '8px', bgcolor: s.bg, border: `1px solid ${s.border}` }}>
-                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: s.text, textTransform: 'uppercase' }}>
-                        {alert.severity}
-                      </Typography>
+        ) : (
+          alerts.map((alert) => {
+            const s = severityColor[alert.severity] || severityColor.low;
+            return (
+              <Box key={alert.id} sx={{
+                p: 2, mb: 1.5, borderRadius: '16px',
+                bgcolor: alert.read ? theme.bg : s.bg,
+                border: `1px solid ${alert.read ? theme.border : s.border}`,
+                opacity: alert.read ? 0.7 : 1,
+              }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Box sx={{ px: 1, py: 0.2, borderRadius: '8px', bgcolor: s.bg, border: `1px solid ${s.border}` }}>
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: s.text, textTransform: 'uppercase' }}>
+                          {alert.severity}
+                        </Typography>
+                      </Box>
+                      {!alert.read && <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />}
                     </Box>
-                    {!alert.read && <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />}
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain, mb: 0.3 }}>
+                      {alert.type}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.78rem', color: theme.textSub, lineHeight: 1.5 }}>
+                      {alert.message}
+                    </Typography>
+                    {/* ✅ Время появления */}
+                    <Typography sx={{ fontSize: '0.68rem', color: theme.textMuted, mt: 0.5 }}>
+                      🕐 {formatTime(alert.createdAt || alert.timestamp)}
+                    </Typography>
                   </Box>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain, mb: 0.3 }}>{alert.type}</Typography>
-                  <Typography sx={{ fontSize: '0.78rem', color: theme.textSub, lineHeight: 1.5 }}>{alert.message}</Typography>
+                  {!alert.read && (
+                    <Button size="small" onClick={() => onMarkRead(alert.id)} sx={{
+                      ml: 1, flexShrink: 0, fontSize: '0.7rem', textTransform: 'none',
+                      borderRadius: '10px', color: theme.primary, bgcolor: theme.primaryBg,
+                      '&:hover': { bgcolor: '#DBEAFE' }, minWidth: 'auto', px: 1.5,
+                    }}>
+                      Mark read
+                    </Button>
+                  )}
                 </Box>
-                {!alert.read && (
-                  <Button size="small" onClick={() => onMarkRead(alert.id)} sx={{
-                    ml: 1, flexShrink: 0, fontSize: '0.7rem', textTransform: 'none',
-                    borderRadius: '10px', color: theme.primary, bgcolor: theme.primaryBg,
-                    '&:hover': { bgcolor: '#DBEAFE' }, minWidth: 'auto', px: 1.5,
-                  }}>
-                    Mark read
-                  </Button>
-                )}
               </Box>
-            </Box>
-          );
-        })}
+            );
+          })
+        )}
       </Box>
     </Drawer>
   );
@@ -707,6 +743,7 @@ const periodLabel = activePeriod === 'daily' ? 'Today vs Yesterday'
         onClose={() => setAlertsOpen(false)}
         alerts={alerts}
         onMarkRead={(id) => markAlertRead(user.uid, id)}
+        onMarkAllRead={() => markAllAlertsRead(user.uid)}
       />
       <BottomNav />
     </Box>

@@ -20,7 +20,7 @@ import {
 } from 'firebase/auth';
 import { auth,storage } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { getUserProfile, updateUserProfile, subscribeAlerts, markAlertRead, get30DaySummary } from '../services/firestoreService';
+import { getUserProfile, updateUserProfile, subscribeAlerts, markAlertRead, get30DaySummary, markAllAlertsRead } from '../services/firestoreService';
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
@@ -54,12 +54,25 @@ const GOALS = [
 ];
 
 
-function AlertsModal({ open, onClose, alerts, onMarkRead }) {
+function AlertsModal({ open, onClose, alerts, onMarkRead, onMarkAllRead }) {
   const severityColor = {
     high:   { bg: '#FEF2F2', text: theme.danger,  border: '#FECACA' },
     medium: { bg: '#FFFBEB', text: theme.warning, border: '#FDE68A' },
     low:    { bg: theme.successBg, text: theme.success, border: '#BBF7D0' },
   };
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60)   return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const unreadCount = alerts.filter(a => !a.read).length;
 
   return (
     <Drawer anchor="bottom" open={open} onClose={onClose}
@@ -70,11 +83,24 @@ function AlertsModal({ open, onClose, alerts, onMarkRead }) {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1.1rem', color: theme.textMain }}>Health Alerts</Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>{alerts.filter(a => !a.read).length} unread</Typography>
+          <Typography sx={{ fontSize: '0.75rem', color: theme.textSub }}>{unreadCount} unread</Typography>
         </Box>
-        <IconButton onClick={onClose} sx={{ bgcolor: theme.bg, borderRadius: '12px' }}>
-          <X size={18} color={theme.textSub} />
-        </IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* ✅ Кнопка Mark All Read */}
+          {unreadCount > 0 && (
+            <Button size="small" onClick={onMarkAllRead}
+              sx={{
+                fontSize: '0.72rem', textTransform: 'none', fontWeight: 600,
+                borderRadius: '10px', color: theme.primary, bgcolor: theme.primaryBg,
+                '&:hover': { bgcolor: '#DBEAFE' },
+              }}>
+              Mark all read
+            </Button>
+          )}
+          <IconButton onClick={onClose} sx={{ bgcolor: theme.bg, borderRadius: '12px' }}>
+            <X size={18} color={theme.textSub} />
+          </IconButton>
+        </Box>
       </Box>
       <Divider sx={{ mb: 2 }} />
       <Box sx={{ overflowY: 'auto' }}>
@@ -103,8 +129,16 @@ function AlertsModal({ open, onClose, alerts, onMarkRead }) {
                       </Box>
                       {!alert.read && <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: theme.primary }} />}
                     </Box>
-                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain, mb: 0.3 }}>{alert.type}</Typography>
-                    <Typography sx={{ fontSize: '0.78rem', color: theme.textSub, lineHeight: 1.5 }}>{alert.message}</Typography>
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: theme.textMain, mb: 0.3 }}>
+                      {alert.type}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.78rem', color: theme.textSub, lineHeight: 1.5 }}>
+                      {alert.message}
+                    </Typography>
+                    {/* ✅ Время появления */}
+                    <Typography sx={{ fontSize: '0.68rem', color: theme.textMuted, mt: 0.5 }}>
+                      🕐 {formatTime(alert.createdAt || alert.timestamp)}
+                    </Typography>
                   </Box>
                   {!alert.read && (
                     <Button size="small" onClick={() => onMarkRead(alert.id)} sx={{
@@ -124,6 +158,7 @@ function AlertsModal({ open, onClose, alerts, onMarkRead }) {
     </Drawer>
   );
 }
+
 function Sidebar({ navigate, location, user }) {
   const { t } = useLanguage();
         const menuItems = [
@@ -923,11 +958,12 @@ export default function Profile() {
       
       </Box>
       <AlertsModal
-  open={alertsOpen}
-  onClose={() => setAlertsOpen(false)}
-  alerts={alerts}
-  onMarkRead={(id) => markAlertRead(user.uid, id)}
-/>
+        open={alertsOpen}
+        onClose={() => setAlertsOpen(false)}
+        alerts={alerts}
+        onMarkRead={(id) => markAlertRead(user.uid, id)}
+        onMarkAllRead={() => markAllAlertsRead(user.uid)}
+      />
       <Dialog open={privacyOpen} onClose={() => setPrivacyOpen(false)}
   PaperProps={{ sx: { borderRadius: '24px', p: 1, maxWidth: 560 } }}>
   <DialogTitle sx={{ fontWeight: 800, color: theme.textMain }}>

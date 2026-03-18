@@ -350,3 +350,16 @@ export const get30DaySummary = async (uid) => {
     return null;
   }
 };
+
+export const markAllAlertsRead = async (uid) => {
+  try {
+    const ref = collection(db, 'users', uid, 'alerts');
+    const snap = await getDocs(query(ref, where('read', '==', false)));
+    const batch = snap.docs.map(d => updateDoc(d.ref, { read: true }));
+    await Promise.all(batch);
+    return true;
+  } catch (err) {
+    console.error('markAllAlertsRead error:', err);
+    return false;
+  }
+};
