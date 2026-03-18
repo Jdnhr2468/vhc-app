@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, sendEmailVerification, signInWithPopup, getRedirectResult } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db, googleProvider, facebookProvider, appleProvider } from '../services/firebase';
+import { auth, db, googleProvider, facebookProvider, appleProvider, db } from '../services/firebase';
 import {
   Box, Typography, TextField, Button,
   Alert, InputAdornment, IconButton
@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, UserPlus, Eye, EyeOff } from 'lucide-react';
 import BioSenseLogo from '../components/BioSenseLogo';
+
 
 
 const theme = {
