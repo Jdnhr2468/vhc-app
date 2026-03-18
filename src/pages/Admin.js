@@ -40,7 +40,6 @@ export default function Admin() {
       try {
         const usersSnap = await getDocs(collection(db, 'users'));
         setUsers(usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
         const ticketsSnap = await getDocs(
           query(collection(db, 'supportTickets'), orderBy('createdAt', 'desc'))
         );
@@ -76,38 +75,40 @@ export default function Admin() {
 
   const UserCard = ({ u, isAdmin }) => (
     <Box sx={{
-      display: 'flex', alignItems: 'center', gap: 2,
-      p: 2, mb: 1.5, borderRadius: '14px',
+      display: 'flex', alignItems: 'center', gap: 1.5,
+      p: { xs: 1.5, md: 2 }, mb: 1.5, borderRadius: '14px',
       border: `1px solid ${isAdmin ? '#FEF3C7' : theme.border}`,
       bgcolor: isAdmin ? '#FFFBEB' : theme.bg,
     }}>
       <Avatar sx={{
         bgcolor: isAdmin ? '#FEF3C7' : theme.primaryBg,
         color:   isAdmin ? '#D97706' : theme.primary,
-        fontWeight: 700,
+        fontWeight: 700, width: { xs: 36, md: 40 }, height: { xs: 36, md: 40 },
       }}>
         {(u.displayName || u.email)?.[0]?.toUpperCase() || 'U'}
       </Avatar>
-      <Box sx={{ flex: 1 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: theme.textMain }}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: { xs: '0.82rem', md: '0.9rem' }, color: theme.textMain,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {u.displayName || u.email?.split('@')[0] || 'Unknown'}
         </Typography>
-        <Typography sx={{ fontSize: '0.78rem', color: theme.textSub }}>
+        <Typography sx={{ fontSize: { xs: '0.7rem', md: '0.78rem' }, color: theme.textSub,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {u.email}
         </Typography>
       </Box>
-      <Chip
-        label={u.role || 'patient'}
-        size="small"
-        sx={{
-          bgcolor: isAdmin ? '#FEF3C7' : theme.successBg,
-          color:   isAdmin ? '#D97706' : theme.success,
-          fontWeight: 700, fontSize: '0.72rem',
-        }}
-      />
-      <Typography sx={{ fontSize: '0.72rem', color: theme.textMuted }}>
-        {u.createdAt?.toDate?.()?.toLocaleDateString() || '—'}
-      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-end', gap: 0.5 }}>
+        <Chip label={u.role || 'patient'} size="small"
+          sx={{
+            bgcolor: isAdmin ? '#FEF3C7' : theme.successBg,
+            color:   isAdmin ? '#D97706' : theme.success,
+            fontWeight: 700, fontSize: '0.7rem',
+          }}
+        />
+        <Typography sx={{ fontSize: '0.68rem', color: theme.textMuted }}>
+          {u.createdAt?.toDate?.()?.toLocaleDateString() || '—'}
+        </Typography>
+      </Box>
     </Box>
   );
 
@@ -117,23 +118,25 @@ export default function Admin() {
       {/* Header */}
       <Box sx={{
         bgcolor: theme.white, borderBottom: `1px solid ${theme.border}`,
-        px: 4, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        px: { xs: 2, md: 4 }, py: { xs: 1.5, md: 2 },
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         position: 'sticky', top: 0, zIndex: 100,
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <BioSenseLogo variant="sidebar" />
-          <Chip label="Admin Panel" size="small"
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <BioSenseLogo variant="mobile" />
+          <Chip label="Admin" size="small"
             sx={{ bgcolor: '#FEF3C7', color: '#D97706', fontWeight: 700, fontSize: '0.72rem' }} />
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography sx={{ fontSize: '0.85rem', color: theme.textSub }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography sx={{ fontSize: '0.78rem', color: theme.textSub, display: { xs: 'none', sm: 'block' } }}>
             {user?.email}
           </Typography>
           <Button onClick={() => { auth.signOut(); navigate('/login'); }}
             startIcon={<LogOut size={16} />}
+            size="small"
             sx={{ textTransform: 'none', color: theme.danger, fontWeight: 600,
-              '&:hover': { bgcolor: '#FEF2F2' } }}>
-            Logout
+              '&:hover': { bgcolor: '#FEF2F2' }, minWidth: 'auto' }}>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>Logout</Box>
           </Button>
         </Box>
       </Box>
@@ -141,23 +144,23 @@ export default function Admin() {
       <Box sx={{ p: { xs: 2, md: 4 } }}>
 
         {/* Stats */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={{ xs: 1.5, md: 3 }} sx={{ mb: 3 }}>
           {[
-            { label: 'Total Users',    value: regularUsers.length,  icon: <Users size={24} />,         color: theme.primary, bg: theme.primaryBg },
-            { label: 'Total Tickets',  value: stats.totalTickets,   icon: <TicketCheck size={24} />,   color: '#8B5CF6',     bg: '#F5F3FF'       },
-            { label: 'Open Tickets',   value: stats.openTickets,    icon: <AlertTriangle size={24} />, color: theme.warning, bg: '#FFFBEB'       },
-            { label: 'Closed Tickets', value: stats.closedTickets,  icon: <CheckCircle size={24} />,   color: theme.success, bg: theme.successBg },
+            { label: 'Users',          value: regularUsers.length,  icon: <Users size={20} />,         color: theme.primary, bg: theme.primaryBg },
+            { label: 'Total Tickets',  value: stats.totalTickets,   icon: <TicketCheck size={20} />,   color: '#8B5CF6',     bg: '#F5F3FF'       },
+            { label: 'Open',           value: stats.openTickets,    icon: <AlertTriangle size={20} />, color: theme.warning, bg: '#FFFBEB'       },
+            { label: 'Closed',         value: stats.closedTickets,  icon: <CheckCircle size={20} />,   color: theme.success, bg: theme.successBg },
           ].map(stat => (
             <Grid item xs={6} md={3} key={stat.label}>
               <Paper elevation={0} sx={{
-                p: 3, borderRadius: '20px', border: `1px solid ${theme.border}`,
-                bgcolor: stat.bg,
+                p: { xs: 2, md: 3 }, borderRadius: '20px',
+                border: `1px solid ${theme.border}`, bgcolor: stat.bg,
               }}>
-                <Box sx={{ color: stat.color, mb: 1 }}>{stat.icon}</Box>
-                <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: stat.color }}>
+                <Box sx={{ color: stat.color, mb: 0.5 }}>{stat.icon}</Box>
+                <Typography sx={{ fontSize: { xs: '1.6rem', md: '2rem' }, fontWeight: 800, color: stat.color }}>
                   {stat.value}
                 </Typography>
-                <Typography sx={{ fontSize: '0.82rem', color: theme.textSub, fontWeight: 600 }}>
+                <Typography sx={{ fontSize: { xs: '0.72rem', md: '0.82rem' }, color: theme.textSub, fontWeight: 600 }}>
                   {stat.label}
                 </Typography>
               </Paper>
@@ -167,16 +170,18 @@ export default function Admin() {
 
         {/* Tabs */}
         <Paper elevation={0} sx={{ borderRadius: '20px', border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
-          <Box sx={{ borderBottom: `1px solid ${theme.border}`, px: 3 }}>
+          <Box sx={{ borderBottom: `1px solid ${theme.border}`, px: { xs: 1, md: 3 }, overflowX: 'auto' }}>
             <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
-              sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
+              sx={{
+                '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: { xs: '0.78rem', md: '0.9rem' }, minWidth: { xs: 'auto', md: 160 } },
+              }}>
               <Tab label={`👥 Users (${regularUsers.length})`} />
               <Tab label={`🔑 Admins (${adminUsers.length})`} />
-              <Tab label={`🎟️ Tickets (${stats.openTickets} open)`} />
+              <Tab label={`🎟️ Tickets (${stats.openTickets})`} />
             </Tabs>
           </Box>
 
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: { xs: 2, md: 3 } }}>
 
             {/* Users Tab */}
             {activeTab === 0 && (
@@ -203,12 +208,12 @@ export default function Admin() {
                   <Typography sx={{ color: theme.textMuted, textAlign: 'center', py: 4 }}>No tickets found</Typography>
                 ) : tickets.map(ticket => (
                   <Box key={ticket.id} sx={{
-                    p: 2.5, mb: 2, borderRadius: '16px',
+                    p: { xs: 2, md: 2.5 }, mb: 2, borderRadius: '16px',
                     border: `1px solid ${ticket.status === 'open' ? theme.warning + '60' : theme.border}`,
                     bgcolor: ticket.status === 'open' ? '#FFFBEB' : theme.bg,
                   }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
                         <Chip label={ticket.category || 'general'} size="small"
                           sx={{ bgcolor: theme.primaryBg, color: theme.primary, fontWeight: 600, fontSize: '0.7rem' }} />
                         <Chip
@@ -229,17 +234,17 @@ export default function Admin() {
                             borderRadius: '10px', color: theme.success, bgcolor: theme.successBg,
                             '&:hover': { bgcolor: '#D1FAE5' },
                           }}>
-                          Close Ticket
+                          Close
                         </Button>
                       )}
                     </Box>
-                    <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 0.5 }}>
+                    <Typography sx={{ fontWeight: 700, color: theme.textMain, mb: 0.5, fontSize: { xs: '0.88rem', md: '1rem' } }}>
                       {ticket.subject}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.82rem', color: theme.textSub, lineHeight: 1.6, mb: 1 }}>
+                    <Typography sx={{ fontSize: { xs: '0.78rem', md: '0.82rem' }, color: theme.textSub, lineHeight: 1.6, mb: 1 }}>
                       {ticket.message}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: theme.textMuted }}>
+                    <Typography sx={{ fontSize: '0.7rem', color: theme.textMuted }}>
                       From: {ticket.email} · {ticket.createdAt?.toDate?.()?.toLocaleString() || '—'}
                     </Typography>
                   </Box>
