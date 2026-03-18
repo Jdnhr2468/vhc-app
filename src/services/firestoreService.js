@@ -363,3 +363,22 @@ export const markAllAlertsRead = async (uid) => {
     return false;
   }
 };
+
+export const submitSupportTicket = async (uid, email, ticket) => {
+  try {
+    const ref = collection(db, 'supportTickets');
+    await addDoc(ref, {
+      uid,
+      email,
+      subject:   ticket.subject,
+      message:   ticket.message,
+      category:  ticket.category,
+      status:    'open',
+      createdAt: serverTimestamp(),
+    });
+    return true;
+  } catch (err) {
+    console.error('submitSupportTicket error:', err);
+    return false;
+  }
+};

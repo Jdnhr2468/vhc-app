@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../services/firebase';
-import { getUserSettings, saveUserSettings, subscribeAlerts, markAlertRead, markAllAlertsRead } from '../services/firestoreService';
+import { getUserSettings, saveUserSettings, subscribeAlerts, markAlertRead, markAllAlertsRead, submitSupportTicket } from '../services/firestoreService';
 import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
@@ -41,6 +41,7 @@ const dashboardCards = [
   { key: 'glucose',   label: 'Glucose',         icon: <Droplets size={16} />,       color: '#8B5CF6' },
   { key: 'stepsToday', label: 'Steps Today',     icon: <PersonStanding size={16} />, color: '#10B981' },
   { key: 'caloriesBurned', label: 'Calories Burned', icon: <Flame size={16} />,          color: '#F59E0B' },
+  
 ];
 
 
@@ -328,6 +329,21 @@ const [activeTab, setActiveTab] = useState(null);
   const [alerts,     setAlerts]     = useState([]);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
+  const [ticket, setTicket]       = useState({ subject: '', message: '', category: 'general' });
+const [ticketSending, setTicketSending] = useState(false);
+const [ticketSent,    setTicketSent]    = useState(false);
+
+const handleSubmitTicket = async () => {
+  if (!ticket.subject || !ticket.message) return;
+  setTicketSending(true);
+  const ok = await submitSupportTicket(user.uid, user.email, ticket);
+  setTicketSending(false);
+  if (ok) {
+    setTicketSent(true);
+    setTicket({ subject: '', message: '', category: 'general' });
+    setTimeout(() => setTicketSent(false), 3000);
+  }
+};
 
 
   // ✅ settingsTabs внутри компонента после useLanguage
@@ -339,6 +355,7 @@ const [activeTab, setActiveTab] = useState(null);
     { key: 'thresholds',    label: t.thresholds,    emoji: '' },
     { key: 'dashboard',     label: t.dashboardCards,emoji: '' },
     { key: 'about',         label: t.about,         emoji: 'ℹ️' },
+    { key: 'support', label: t.support || 'Support', emoji: '🆘' },
   ];
 
 useEffect(() => {
@@ -464,6 +481,10 @@ useEffect(() => {
               notifTypes={notifTypes} setNotifTypes={setNotifTypes}
               thresholds={thresholds} setThresholds={setThresholds}
               visibleCards={visibleCards} toggleCard={toggleCard}
+              ticket={ticket} setTicket={setTicket}
+  ticketSending={ticketSending} ticketSent={ticketSent}
+  handleSubmitTicket={handleSubmitTicket}
+  user={user}
             />
           </Box>
         </Box>
@@ -531,6 +552,10 @@ useEffect(() => {
           notifTypes={notifTypes} setNotifTypes={setNotifTypes}
           thresholds={thresholds} setThresholds={setThresholds}
           visibleCards={visibleCards} toggleCard={toggleCard}
+          ticket={ticket} setTicket={setTicket}
+  ticketSending={ticketSending} ticketSent={ticketSent}
+  handleSubmitTicket={handleSubmitTicket}
+  user={user}
           />
         </Box>
         {/* Кнопка Save — только не для about */}
@@ -566,7 +591,7 @@ useEffect(() => {
 
 function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSize, setFontSize,
   notifTime, setNotifTime, notifTypes, setNotifTypes, thresholds, setThresholds,
-  visibleCards, toggleCard }) {
+  visibleCards, toggleCard,  ticket, setTicket, ticketSending, ticketSent, handleSubmitTicket, user }) {
 
   return (
     <>
@@ -759,6 +784,104 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
         </AppleSection>
       )}
 
+      {activeTab === 'support' && (
+  <>
+    <AppleSection label="Contact Support">
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography sx={{ fontSize: '0.82rem', color: theme.textSub, mb: 2 }}>
+          Having an issue? Send us a message and we'll get back to you.
+        </Typography>
+
+        {/* Категория */}
+        <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: theme.textSub, mb: 1 }}>
+          Category
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          {[
+            { key: 'general',  label: '💬 General'  },
+            { key: 'bug',      label: '🐛 Bug'       },
+            { key: 'account',  label: '👤 Account'   },
+            { key: 'data',     label: '📊 Data'      },
+          ].map(cat => (
+            <Box key={cat.key} onClick={() => setTicket(p => ({ ...p, category: cat.key }))} sx={{
+              px: 1.5, py: 0.6, borderRadius: '20px', cursor: 'pointer',
+              bgcolor: ticket.category === cat.key ? theme.primary : theme.bg,
+              color:   ticket.category === cat.key ? 'white' : theme.textSub,
+              border:  `1px solid ${ticket.category === cat.key ? theme.primary : theme.border}`,
+              fontSize: '0.78rem', fontWeight: 600,
+            }}>
+              {cat.label}
+            </Box>
+          ))}
+        </Box>
+
+        {/* Тема */}
+        <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: theme.textSub, mb: 0.8 }}>
+          Subject
+        </Typography>
+        <Box
+          component="input"
+          value={ticket.subject}
+          onChange={e => setTicket(p => ({ ...p, subject: e.target.value }))}
+          placeholder="Brief description of your issue"
+          sx={{
+            width: '100%', mb: 2, p: 1.5,
+            borderRadius: '12px', border: `1px solid ${theme.border}`,
+            fontSize: '0.85rem', color: theme.textMain,
+            bgcolor: theme.bg, outline: 'none',
+            '&:focus': { borderColor: theme.primary },
+            boxSizing: 'border-box',
+          }}
+        />
+
+        {/* Сообщение */}
+        <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: theme.textSub, mb: 0.8 }}>
+          Message
+        </Typography>
+        <Box
+          component="textarea"
+          value={ticket.message}
+          onChange={e => setTicket(p => ({ ...p, message: e.target.value }))}
+          placeholder="Describe your issue in detail..."
+          rows={5}
+          sx={{
+            width: '100%', mb: 2, p: 1.5,
+            borderRadius: '12px', border: `1px solid ${theme.border}`,
+            fontSize: '0.85rem', color: theme.textMain,
+            bgcolor: theme.bg, outline: 'none', resize: 'vertical',
+            fontFamily: 'inherit',
+            '&:focus': { borderColor: theme.primary },
+            boxSizing: 'border-box',
+          }}
+        />
+
+        {/* Кнопка отправки */}
+        <Button fullWidth onClick={handleSubmitTicket} disabled={ticketSending || !ticket.subject || !ticket.message}
+          sx={{
+            py: 1.4, borderRadius: '12px', textTransform: 'none', fontWeight: 700,
+            bgcolor: ticketSent ? theme.success : theme.primary, color: 'white',
+            '&:hover': { bgcolor: ticketSent ? '#059669' : '#1D4ED8' },
+            '&:disabled': { bgcolor: theme.textMuted, color: 'white' },
+          }}>
+          {ticketSending ? 'Sending...' : ticketSent ? '✅ Sent!' : 'Send Message'}
+        </Button>
+
+        {ticketSent && (
+          <Typography sx={{ fontSize: '0.78rem', color: theme.success, textAlign: 'center', mt: 1 }}>
+            We'll respond to {user?.email} within 24 hours.
+          </Typography>
+        )}
+      </Box>
+    </AppleSection>
+
+    <AppleSection label="Quick Links">
+      <AppleRow label="📧 Email Us" desc="biosense@hw.ac.uk" divider
+        onClick={() => window.open('mailto:biosense@hw.ac.uk')} />
+      <AppleRow label="📖 User Guide" desc="How to use BioSense" divider={false}
+        onClick={() => {}} />
+    </AppleSection>
+  </>
+)}
 
       {activeTab === 'about' && (
         <>
