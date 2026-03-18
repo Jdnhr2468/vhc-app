@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Grid, Paper, Typography, Chip, Button,
   List, ListItem, ListItemButton, ListItemIcon,
@@ -571,12 +571,12 @@ useEffect(() => {
       </Box>
       </Box>
       <AlertsModal
-  open={alertsOpen}
-  onClose={() => setAlertsOpen(false)}
-  alerts={alerts}
-  onMarkRead={(id) => markAlertRead(user.uid, id)}
-  onMarkAllRead={() => markAllAlertsRead(user.uid)}
-/>
+        open={alertsOpen}
+        onClose={() => setAlertsOpen(false)}
+        alerts={alerts}
+        onMarkRead={(id) => markAlertRead(user.uid, id)}
+        onMarkAllRead={() => markAllAlertsRead(user.uid)}
+      />
       {/* ✅ ДОБАВЛЕНО: нижняя навигация */}
       <BottomNav />
     </Box>
