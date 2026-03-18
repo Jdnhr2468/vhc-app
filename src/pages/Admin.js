@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Grid, Paper, Typography, Button, Avatar,
-  Chip, CircularProgress, Tab, Tabs, 
+  Chip, CircularProgress, Tab, Tabs,
 } from '@mui/material';
 import {
-  Users, TicketCheck, 
+  Users, TicketCheck,
   CheckCircle, Clock, AlertTriangle, LogOut
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -38,11 +38,9 @@ export default function Admin() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Загрузка пользователей
         const usersSnap = await getDocs(collection(db, 'users'));
         setUsers(usersSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        // Загрузка тикетов
         const ticketsSnap = await getDocs(
           query(collection(db, 'supportTickets'), orderBy('createdAt', 'desc'))
         );
@@ -61,11 +59,14 @@ export default function Admin() {
   };
 
   const stats = {
-    totalUsers:   users.length,
-    totalTickets: tickets.length,
-    openTickets:  tickets.filter(t => t.status === 'open').length,
+    totalUsers:    users.length,
+    totalTickets:  tickets.length,
+    openTickets:   tickets.filter(t => t.status === 'open').length,
     closedTickets: tickets.filter(t => t.status === 'closed').length,
   };
+
+  const regularUsers = users.filter(u => u.role !== 'admin');
+  const adminUsers   = users.filter(u => u.role === 'admin');
 
   if (loading) return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
@@ -73,9 +74,46 @@ export default function Admin() {
     </Box>
   );
 
+  const UserCard = ({ u, isAdmin }) => (
+    <Box sx={{
+      display: 'flex', alignItems: 'center', gap: 2,
+      p: 2, mb: 1.5, borderRadius: '14px',
+      border: `1px solid ${isAdmin ? '#FEF3C7' : theme.border}`,
+      bgcolor: isAdmin ? '#FFFBEB' : theme.bg,
+    }}>
+      <Avatar sx={{
+        bgcolor: isAdmin ? '#FEF3C7' : theme.primaryBg,
+        color:   isAdmin ? '#D97706' : theme.primary,
+        fontWeight: 700,
+      }}>
+        {(u.displayName || u.email)?.[0]?.toUpperCase() || 'U'}
+      </Avatar>
+      <Box sx={{ flex: 1 }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: theme.textMain }}>
+          {u.displayName || u.email?.split('@')[0] || 'Unknown'}
+        </Typography>
+        <Typography sx={{ fontSize: '0.78rem', color: theme.textSub }}>
+          {u.email}
+        </Typography>
+      </Box>
+      <Chip
+        label={u.role || 'patient'}
+        size="small"
+        sx={{
+          bgcolor: isAdmin ? '#FEF3C7' : theme.successBg,
+          color:   isAdmin ? '#D97706' : theme.success,
+          fontWeight: 700, fontSize: '0.72rem',
+        }}
+      />
+      <Typography sx={{ fontSize: '0.72rem', color: theme.textMuted }}>
+        {u.createdAt?.toDate?.()?.toLocaleDateString() || '—'}
+      </Typography>
+    </Box>
+  );
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: theme.bg }}>
-      
+
       {/* Header */}
       <Box sx={{
         bgcolor: theme.white, borderBottom: `1px solid ${theme.border}`,
@@ -100,24 +138,22 @@ export default function Admin() {
         </Box>
       </Box>
 
-      <Box sx={{ p: 4 }}>
+      <Box sx={{ p: { xs: 2, md: 4 } }}>
 
         {/* Stats */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
-            { label: 'Total Users',    value: stats.totalUsers,   icon: <Users size={24} />,        color: theme.primary, bg: theme.primaryBg },
-            { label: 'Total Tickets',  value: stats.totalTickets, icon: <TicketCheck size={24} />,  color: '#8B5CF6',     bg: '#F5F3FF'       },
-            { label: 'Open Tickets',   value: stats.openTickets,  icon: <AlertTriangle size={24} />,color: theme.warning, bg: '#FFFBEB'       },
-            { label: 'Closed Tickets', value: stats.closedTickets,icon: <CheckCircle size={24} />,  color: theme.success, bg: theme.successBg },
+            { label: 'Total Users',    value: regularUsers.length,  icon: <Users size={24} />,         color: theme.primary, bg: theme.primaryBg },
+            { label: 'Total Tickets',  value: stats.totalTickets,   icon: <TicketCheck size={24} />,   color: '#8B5CF6',     bg: '#F5F3FF'       },
+            { label: 'Open Tickets',   value: stats.openTickets,    icon: <AlertTriangle size={24} />, color: theme.warning, bg: '#FFFBEB'       },
+            { label: 'Closed Tickets', value: stats.closedTickets,  icon: <CheckCircle size={24} />,   color: theme.success, bg: theme.successBg },
           ].map(stat => (
             <Grid item xs={6} md={3} key={stat.label}>
               <Paper elevation={0} sx={{
                 p: 3, borderRadius: '20px', border: `1px solid ${theme.border}`,
                 bgcolor: stat.bg,
               }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Box sx={{ color: stat.color }}>{stat.icon}</Box>
-                </Box>
+                <Box sx={{ color: stat.color, mb: 1 }}>{stat.icon}</Box>
                 <Typography sx={{ fontSize: '2rem', fontWeight: 800, color: stat.color }}>
                   {stat.value}
                 </Typography>
@@ -134,8 +170,9 @@ export default function Admin() {
           <Box sx={{ borderBottom: `1px solid ${theme.border}`, px: 3 }}>
             <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
               sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
-              <Tab label={`👥 Users (${stats.totalUsers})`} />
-              <Tab label={`🎟️ Support Tickets (${stats.openTickets} open)`} />
+              <Tab label={`👥 Users (${regularUsers.length})`} />
+              <Tab label={`🔑 Admins (${adminUsers.length})`} />
+              <Tab label={`🎟️ Tickets (${stats.openTickets} open)`} />
             </Tabs>
           </Box>
 
@@ -144,44 +181,23 @@ export default function Admin() {
             {/* Users Tab */}
             {activeTab === 0 && (
               <Box>
-                {users.length === 0 ? (
+                {regularUsers.length === 0 ? (
                   <Typography sx={{ color: theme.textMuted, textAlign: 'center', py: 4 }}>No users found</Typography>
-                ) : users.map(u => (
-                  <Box key={u.id} sx={{
-                    display: 'flex', alignItems: 'center', gap: 2,
-                    p: 2, mb: 1.5, borderRadius: '14px',
-                    border: `1px solid ${theme.border}`, bgcolor: theme.bg,
-                  }}>
-                    <Avatar sx={{ bgcolor: theme.primaryBg, color: theme.primary, fontWeight: 700 }}>
-                      {(u.displayName || u.email)?.[0]?.toUpperCase() || 'U'}
-                    </Avatar>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: theme.textMain }}>
-                        {u.displayName || u.email?.split('@')[0] || 'Unknown'}
-                      </Typography>
-                      <Typography sx={{ fontSize: '0.78rem', color: theme.textSub }}>
-                        {u.email}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      label={u.role || 'patient'}
-                      size="small"
-                      sx={{
-                        bgcolor: u.role === 'admin' ? '#FEF3C7' : theme.successBg,
-                        color:   u.role === 'admin' ? '#D97706'  : theme.success,
-                        fontWeight: 700, fontSize: '0.72rem',
-                      }}
-                    />
-                    <Typography sx={{ fontSize: '0.72rem', color: theme.textMuted }}>
-                      {u.createdAt?.toDate?.()?.toLocaleDateString() || '—'}
-                    </Typography>
-                  </Box>
-                ))}
+                ) : regularUsers.map(u => <UserCard key={u.id} u={u} isAdmin={false} />)}
+              </Box>
+            )}
+
+            {/* Admins Tab */}
+            {activeTab === 1 && (
+              <Box>
+                {adminUsers.length === 0 ? (
+                  <Typography sx={{ color: theme.textMuted, textAlign: 'center', py: 4 }}>No admins found</Typography>
+                ) : adminUsers.map(u => <UserCard key={u.id} u={u} isAdmin={true} />)}
               </Box>
             )}
 
             {/* Tickets Tab */}
-            {activeTab === 1 && (
+            {activeTab === 2 && (
               <Box>
                 {tickets.length === 0 ? (
                   <Typography sx={{ color: theme.textMuted, textAlign: 'center', py: 4 }}>No tickets found</Typography>
