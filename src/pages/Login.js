@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup,sendPasswordResetEmail, getRedirectResult  } from 'firebase/auth';
-import { auth, googleProvider, facebookProvider, appleProvider  } from '../services/firebase';
+import { auth, googleProvider, facebookProvider, appleProvider, db  } from '../services/firebase';
 import {
   Box, Typography, TextField, Button,
   Alert, InputAdornment, IconButton
@@ -8,6 +8,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import BioSenseLogo from '../components/BioSenseLogo';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 const theme = {
@@ -85,6 +86,13 @@ const handleForgotPassword = async () => {
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+const role = userDoc.data()?.role || 'patient';
+if (role === 'admin') {
+  navigate('/admin');
+} else {
+  navigate('/dashboard');
+}
       const user = userCredential.user;
 
       // Проверяем верифицирован ли email
@@ -101,6 +109,7 @@ const handleForgotPassword = async () => {
       setLoading(false);
     }
   };
+  
 
   return (
     <Box sx={{

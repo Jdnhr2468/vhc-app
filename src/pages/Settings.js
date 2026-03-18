@@ -354,8 +354,8 @@ const handleSubmitTicket = async () => {
     { key: 'notifications', label: t.notifications, emoji: '' },
     { key: 'thresholds',    label: t.thresholds,    emoji: '' },
     { key: 'dashboard',     label: t.dashboardCards,emoji: '' },
-    { key: 'about',         label: t.about,         emoji: 'ℹ️' },
     { key: 'support', label: t.support || 'Support', emoji: '🆘' },
+    { key: 'about',         label: t.about,         emoji: 'ℹ️' },
   ];
 
 useEffect(() => {
@@ -462,15 +462,17 @@ useEffect(() => {
               <Typography sx={{ fontSize: '1.4rem', fontWeight: 800, color: theme.textMain }}>
                 {settingsTabs.find(tab => tab.key === activeTab)?.label}
               </Typography>
-              <Button onClick={handleSave} disabled={saving}
-                startIcon={saving ? <CircularProgress size={16} color="inherit" /> : saved ? <Check size={16} /> : null}
-                sx={{
-                  bgcolor: saved ? theme.success : theme.primary, color: 'white',
-                  borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 3,
-                  '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
-                }}>
-                {saving ? t.saving : saved ? t.saved : t.saveChanges}
-              </Button>
+              {activeTab !== 'about' && activeTab !== 'support' && (
+  <Button onClick={handleSave} disabled={saving}
+    startIcon={saving ? <CircularProgress size={16} color="inherit" /> : saved ? <Check size={16} /> : null}
+    sx={{
+      bgcolor: saved ? theme.success : theme.primary, color: 'white',
+      borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 3,
+      '&:hover': { bgcolor: saved ? '#059669' : '#1D4ED8' },
+    }}>
+    {saving ? t.saving : saved ? t.saved : t.saveChanges}
+  </Button>
+)}
             </Box>
             <TabContent
               activeTab={activeTab}
@@ -559,7 +561,7 @@ useEffect(() => {
           />
         </Box>
         {/* Кнопка Save — только не для about */}
-{activeTab !== 'about' && (
+{activeTab !== 'about' && activeTab !== 'support' && (
   <Box sx={{ px: 2, mt: 2, mb: 2 }}>
     <Button onClick={handleSave} disabled={saving} fullWidth
       startIcon={saving ? <CircularProgress size={14} color="inherit" /> : saved ? <Check size={14} /> : null}
@@ -798,10 +800,11 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
           {[
-            { key: 'general',  label: '💬 General'  },
-            { key: 'bug',      label: '🐛 Bug'       },
-            { key: 'account',  label: '👤 Account'   },
-            { key: 'data',     label: '📊 Data'      },
+            { key: 'general',  label: ' General'  },
+            { key: 'bug',      label: ' Bug'       },
+            { key: 'account',  label: ' Account'   },
+            { key: 'data',     label: ' Data'      },
+            { key: 'other',     label: ' Other'      },
           ].map(cat => (
             <Box key={cat.key} onClick={() => setTicket(p => ({ ...p, category: cat.key }))} sx={{
               px: 1.5, py: 0.6, borderRadius: '20px', cursor: 'pointer',
@@ -875,10 +878,8 @@ function TabContent({ activeTab, language, setLanguage, units, setUnits, fontSiz
     </AppleSection>
 
     <AppleSection label="Quick Links">
-      <AppleRow label="📧 Email Us" desc="biosense@hw.ac.uk" divider
-        onClick={() => window.open('mailto:biosense@hw.ac.uk')} />
-      <AppleRow label="📖 User Guide" desc="How to use BioSense" divider={false}
-        onClick={() => {}} />
+      <AppleRow label="📧 Email Us" desc="biosense@hw.ac.uk" divider={false}
+        onClick={() => window.open('mailto:biosense@hw.ac.uk', '_blank')} />
     </AppleSection>
   </>
 )}
