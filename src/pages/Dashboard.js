@@ -21,7 +21,7 @@ import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
 import BioSenseLogo from '../components/BioSenseLogo';
-import { getGrokRecommendation } from '../services/grokService';
+
 
 
 
