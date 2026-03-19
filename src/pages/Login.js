@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import BioSenseLogo from '../components/BioSenseLogo';
 import { doc, getDoc } from 'firebase/firestore';
+// eslint-disable-next-line no-use-before-define
 
 
 const theme = {

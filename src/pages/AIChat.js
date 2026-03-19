@@ -148,41 +148,43 @@ Current patient biomarkers:
 - Oxygen Level: ${vitals.ox}%
 - Glucose: ${vitals.gl} mmol/L
 - Steps Today: ${vitals.steps}
-- Calories Burned: ${vitals.cal} kcal
-` : '';
+- Calories Burned: ${vitals.cal} kcal` : '';
 
       const apiMessages = messages
         .slice(1)
         .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
       apiMessages.push({ role: 'user', content: userText });
 
-      const response = await fetch('/api/claude/v1/messages', {
+      const response = await fetch('https://api.x.ai/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_GROK_API_KEY}`
+        },
         body: JSON.stringify({
-          model:      'claude-sonnet-4-20250514',
+          model: 'grok-3-latest',
           max_tokens: 1000,
-          system: `You are BioSense AI, a friendly and knowledgeable personal health advisor integrated into the BioSense health monitoring app.
-
-          ${vitalsContext}
-Your role:
-- Provide helpful, personalized health advice based on the user's biomarker data
-- Be conversational, warm, and encouraging
-- Keep responses concise (2-4 sentences max unless asked for detail)
-- Always remind users to consult a doctor for medical decisions
-- Use emojis occasionally to keep tone friendly
-- Never diagnose conditions — only provide general wellness advice
-
-User name: ${user?.displayName || 'User'}`,
-          messages: apiMessages,
+          messages: [
+            {
+              role: 'system',
+              content: `You are BioSense AI, a friendly personal health advisor.
+${vitalsContext}
+- Give helpful personalized advice based on biomarker data
+- Be warm and encouraging
+- Max 2-4 sentences
+- Remind to consult a doctor for medical decisions
+- Use emojis occasionally
+User name: ${user?.displayName || 'User'}`
+            },
+            ...apiMessages
+          ],
         }),
       });
 
-      const data  = await response.json();
-      const reply = data.content?.[0]?.text || 'Sorry, I could not process your request.';
+      const data = await response.json();
+      const reply = data.choices?.[0]?.message?.content || 'Sorry, I could not process your request.';
       setMessages(prev => [...prev, { role: 'assistant', text: reply }]);
-    }
-     catch (err) {
+    } catch (err) {
       console.error('AIChat error:', err);
       setMessages(prev => [...prev, { role: 'assistant', text: '⚠️ Connection error. Please try again.' }]);
     } finally {

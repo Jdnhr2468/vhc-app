@@ -1,18 +1,20 @@
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
+
+  // Grok API
   app.use(
-    '/api/claude',
+    '/api/grok',
     createProxyMiddleware({
-      target: 'https://api.anthropic.com',
+      target: 'https://api.x.ai',
       changeOrigin: true,
-      pathRewrite: { '^/api/claude': '' },
+      pathRewrite: { '^/api/grok': '' },
       on: {
         proxyReq: (proxyReq) => {
-          proxyReq.setHeader('anthropic-version', '2023-06-01');
-          proxyReq.setHeader('x-api-key', process.env.REACT_APP_ANTHROPIC_KEY || '');
+          proxyReq.setHeader('Authorization', `Bearer ${process.env.REACT_APP_GROK_API_KEY || ''}`);
         },
       },
     })
   );
+
 };

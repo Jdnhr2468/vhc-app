@@ -21,6 +21,8 @@ import BottomNav    from '../components/layout/BottomNav';
 import MobileHeader from '../components/layout/MobileHeader';
 import { useLanguage } from '../context/LanguageContext';
 import BioSenseLogo from '../components/BioSenseLogo';
+import { getGrokRecommendation } from '../services/grokService';
+
 
 
 const theme = {
@@ -440,6 +442,17 @@ export default function Dashboard() {
   const [alerts,     setAlerts]     = useState([]);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const lastSnapshotTime = useRef(0);
+  const [aiTip, setAiTip] = useState('Loading health tip...');
+
+  useEffect(() => {
+  getGrokRecommendation({
+    heartRate: 72,
+    bloodPressure: '120/80',
+    glucose: 5.2,
+    oxygen: 98,
+    steps: 8234
+  }).then(setAiTip).catch(() => setAiTip('Unable to load tip'));
+}, []);
 
   useEffect(() => {
     if (!user) return;
