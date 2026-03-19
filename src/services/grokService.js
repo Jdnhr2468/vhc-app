@@ -1,4 +1,3 @@
-const GROQ_API_KEY = process.env.REACT_APP_GROQ_API_KEY;
 
 export async function getGrokRecommendation(biomarkers) {
   try {
