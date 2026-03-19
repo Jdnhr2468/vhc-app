@@ -2,16 +2,16 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
 
-  // Grok API
+  // Groq API
   app.use(
-    '/api/grok',
+    '/api/groq',
     createProxyMiddleware({
-      target: 'https://api.x.ai',
+      target: 'https://api.groq.com',
       changeOrigin: true,
-      pathRewrite: { '^/api/grok': '' },
+      pathRewrite: { '^/api/groq': '' },
       on: {
         proxyReq: (proxyReq) => {
-          proxyReq.setHeader('Authorization', `Bearer ${process.env.REACT_APP_GROK_API_KEY || ''}`);
+          proxyReq.setHeader('Authorization', `Bearer ${process.env.REACT_APP_GROQ_API_KEY || ''}`);
         },
       },
     })

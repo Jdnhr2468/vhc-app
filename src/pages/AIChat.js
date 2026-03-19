@@ -155,19 +155,19 @@ Current patient biomarkers:
         .map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }));
       apiMessages.push({ role: 'user', content: userText });
 
-      const response = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_GROK_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'grok-3-latest',
-          max_tokens: 1000,
-          messages: [
-            {
-              role: 'system',
-              content: `You are BioSense AI, a friendly personal health advisor.
+      const response = await fetch('/api/groq/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    // Authorization убери — прокси сам добавит!
+  },
+  body: JSON.stringify({
+    model: 'llama-3.3-70b-versatile', // ← модель Groq
+    max_tokens: 1000,
+    messages: [
+      {
+        role: 'system',
+        content: `You are BioSense AI, a friendly personal health advisor.
 ${vitalsContext}
 - Give helpful personalized advice based on biomarker data
 - Be warm and encouraging

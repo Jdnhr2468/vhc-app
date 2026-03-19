@@ -1,12 +1,14 @@
-// src/services/grokService.js
-
-const GROK_API_KEY = process.env.REACT_APP_GROK_API_KEY;
+const GROQ_API_KEY = process.env.REACT_APP_GROQ_API_KEY;
 
 export async function getGrokRecommendation(biomarkers) {
   try {
-    const response = await fetch('/api/grok/v1/chat/completions', {
+    const response = await fetch('/api/groq/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        model: 'grok-3-latest',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
@@ -30,7 +32,7 @@ Give me a short health tip.`
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (err) {
-    console.error('Grok API error:', err);
+    console.error('Groq API error:', err);
     return '💡 Stay hydrated and keep moving — your body will thank you!';
   }
 }
